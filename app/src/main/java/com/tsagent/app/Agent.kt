@@ -48,10 +48,13 @@ Rules:
 - Never type passwords or payment details. If login or captcha blocks you, use "done" and explain.
 - If a step needs a permission you do not have (the screen says accessibility is off, or the gallery or microphone is not allowed), use "need_permission" instead of guessing.
 - Known apps: YouTube, Facebook, TikTok, Telegram, Instagram, X (Twitter), GitHub. To upload or share the latest video or photo, use share_media (far more reliable than browsing the gallery), then tap the Post, Upload or Share button, and use "confirm" before the final publish.
+- Sending a message (any app): open the app, look for a search box or a Search/Find/Contacts icon, type the person's name and tap their name in the results (match the name exactly). Then tap the message box (often labelled "Message", "Type a message" or "Write"), type the text, and tap Send (paper plane icon or the word "Send"). For this, use batch to type and tap Send on the same screen. If there is no match for the name, say so and use done instead of guessing.
+- imo: the contacts or chat list is on the main screen; use the search icon and type the name. TikTok: messages are under the Inbox (envelope) tab, then search or pick the person. Facebook and Messenger: messages are under the Messenger or chat icon; use search at the top to find the person. Always check the screen labels, since layouts change.
 - Questions about the user (who they are, their projects, preferences): answer from the memory section below; if the answer is not there, say you do not know. When asked for one of the user's website links, reply with the exact URL from memory.
 - TS Agent is owned and developed by ${Config.OWNER_NAME}. If asked who owns or made it, answer with that name. If asked for the owner's contact number, give ${Config.OWNER_CONTACT}.
 - You may open login and sign-up screens and fill in the user's name and email from memory. Never type passwords, one-time codes or payment details and never solve captchas: stop with "done" or "need_permission"-style guidance and ask the user to do that step, then continue when they say so. Never create accounts in bulk.
 - To keep watching a feed, alternate "wait" and "scroll" (or use "autoplay").
+- To finish a step on the same screen in one reply, use {"action":"batch","steps":[{"action":"type","index":<n>,"text":"..."},{"action":"tap","index":<n>}]}. Allowed inside a batch: type, tap, scroll, back, home. Indexes come from the current screen only. Do not put open_app or confirm in a batch: open the app in its own step, and use confirm before sending anything important.
 - add_event, draft_sms and draft_email only open a pre-filled screen; the user taps the final button. Use the current time given in the prompt to work out dates like "tomorrow evening".
 - If the same step fails twice, try another way. If stuck, use "done" and say why.
 """.trimIndent()
@@ -139,12 +142,49 @@ Rules:
                 "confirm" -> {
                     if (svc == null || !confirm(svc, obj.optString("message"))) { post("Cancelled"); return }
                 }
-                "open_app" -> history.add("result: " + CommandRunner.openApp(act, obj.optString("name")))
+                "open_app" -> {
+                    val res = CommandRunner.openApp(act, obj.optString("name"))
+                    history.add("result: " + res)
+                    // Wait for the app to come to the front (up to 2 seconds) instead of looking at the old screen.
+                    val want = Regex("Opened").containsMatchIn(res)
+                    if (want) {
+                        val t0 = System.currentTimeMillis()
+                        val startPkg = AgentService.instance?.currentPackage()
+                        while (System.currentTimeMillis() - t0 < 2000 && !cancelled && gen == generation) {
+                            Thread.sleep(120)
+                            val now = AgentService.instance?.currentPackage()
+                            if (now != null && now != startPkg && now != act.packageName) break
+                        }
+                    }
+                }
                 "tap" -> history.add("result: " + (svc?.tapIndex(obj.optInt("index", -1)) ?: false))
                 "type" -> history.add("result: " + (svc?.typeIndex(obj.optInt("index", -1), obj.optString("text")) ?: false))
                 "scroll" -> svc?.scrollDown()
                 "back" -> svc?.back()
                 "home" -> svc?.home()
+                "batch" -> {
+                    // Several steps on the SAME screen in one AI reply (for example type a message, then tap Send).
+                    val steps = obj.optJSONArray("steps")
+                    if (steps != null) for (i in 0 until minOf(steps.length(), 4)) {
+                        val st = steps.optJSONObject(i) ?: continue
+                        val a = st.optString("action")
+                        if (cancelled || gen != generation) break
+                        if (a !in setOf("type", "tap", "scroll", "back", "home")) {
+                            history.add("result: batch skipped " + a + " (not allowed in a batch)")
+                            continue
+                        }
+                        val ok: Boolean = when (a) {
+                            "type" -> svc?.typeIndex(st.optInt("index", -1), st.optString("text")) ?: false
+                            "tap" -> svc?.tapIndex(st.optInt("index", -1)) ?: false
+                            "scroll" -> { svc?.scrollDown(); true }
+                            "back" -> { svc?.back(); true }
+                            else -> { svc?.home(); true }
+                        }
+                        history.add("result: " + a + " " + ok)
+                        if (!ok) break
+                        Thread.sleep(400)
+                    }
+                }
                 "telegram" -> history.add("result: " + CommandRunner.sendTelegram(act, obj.optString("text")))
                 "add_event" -> if (!Entitlements.premium(act)) history.add("result: paid feature (Plan 2). Tell the user.") else history.add("result: " + Actions.addEvent(act, obj.optString("title"), obj.optString("start"), obj.optInt("minutes", 60), obj.optString("notes")))
                 "set_alarm" -> if (!Entitlements.premium(act)) history.add("result: paid feature (Plan 2). Tell the user.") else history.add("result: " + Actions.setAlarm(act, obj.optInt("hour", -1), obj.optInt("minute", 0), obj.optString("label")))

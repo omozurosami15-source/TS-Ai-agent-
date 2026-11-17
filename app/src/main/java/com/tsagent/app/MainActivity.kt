@@ -597,7 +597,8 @@ class MainActivity : Activity() {
                 override fun onPartialResults(b: Bundle?) {
                     // Talking over the phone interrupts it, so the user is always heard first.
                     val p = b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                    if (!p.isNullOrBlank() && p.trim().length >= 3 && (Agent.running || stage.state == 2)) interrupt()
+                    // Only while the phone is talking, and only for real words: a running task is not cut off by noise.
+                    if (!p.isNullOrBlank() && p.trim().length >= 5 && stage.state == 2) interrupt()
                 }
                 override fun onEvent(t: Int, b: Bundle?) {}
             })
