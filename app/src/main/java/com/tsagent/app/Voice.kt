@@ -69,24 +69,29 @@ object Voice {
     }
 
     /** Blocking. Female voices on the account as (voiceId, label), or an error message. */
-    fun femaleVoices(key: String): Pair<List<Pair<String, String>>, String?> {
-        try {
-            val (code, b) = call("/v2/voices?gender=female&page_size=100", key)
-            if (code != 200) return emptyList<Pair<String, String>>() to "ElevenLabs error $code. Check the API key."
-            val arr = JSONObject(String(b)).getJSONArray("voices")
-            val out = ArrayList<Pair<String, String>>()
-            for (i in 0 until arr.length()) {
-                val v = arr.getJSONObject(i)
-                val labels = v.optJSONObject("labels")
-                if (labels?.optString("gender").equals("female", ignoreCase = true)) {
-                    val extra = listOf(labels?.optString("accent").orEmpty(), labels?.optString("descriptive").orEmpty()).filter { it.isNotBlank() }
-                    out.add(v.getString("voice_id") to (v.optString("name") + if (extra.isEmpty()) "" else " (" + extra.joinToString(", ") + ")"))
+    fun femaleVoices(keys: String): Pair<List<Pair<String, String>>, String?> {
+        var lastErr = "No ElevenLabs key saved."
+        // several keys may be saved: the first one that works is used
+        for (key in Llm.keyList(keys)) {
+            try {
+                val (code, b) = call("/v2/voices?gender=female&page_size=100", key)
+                if (code != 200) { lastErr = "ElevenLabs error $code. Check the API key."; continue }
+                val arr = JSONObject(String(b)).getJSONArray("voices")
+                val out = ArrayList<Pair<String, String>>()
+                for (i in 0 until arr.length()) {
+                    val v = arr.getJSONObject(i)
+                    val labels = v.optJSONObject("labels")
+                    if (labels?.optString("gender").equals("female", ignoreCase = true)) {
+                        val extra = listOf(labels?.optString("accent").orEmpty(), labels?.optString("descriptive").orEmpty()).filter { it.isNotBlank() }
+                        out.add(v.getString("voice_id") to (v.optString("name") + if (extra.isEmpty()) "" else " (" + extra.joinToString(", ") + ")"))
+                    }
                 }
+                return out to null
+            } catch (e: Exception) {
+                lastErr = "Network error: ${e.message}"
             }
-            return out to null
-        } catch (e: Exception) {
-            return emptyList<Pair<String, String>>() to "Network error: ${e.message}"
         }
+        return emptyList<Pair<String, String>>() to lastErr
     }
 
     /** Picks the ElevenLabs speech model that lists Bengali and has the most languages; falls back to multilingual v2. */

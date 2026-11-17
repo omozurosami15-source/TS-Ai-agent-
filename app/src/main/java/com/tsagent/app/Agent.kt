@@ -16,6 +16,8 @@ class Agent(private val act: Context, private val say: (String) -> Unit) {
     companion object {
         @Volatile var cancelled = false
         @Volatile var running = false
+        /** Each request gets a number. An older request stops by itself when a newer one has started. */
+        @Volatile var generation = 0
         var onSpeak: ((String, String?) -> Unit)? = null
 
         private val SYSTEM = """
@@ -64,19 +66,11 @@ Rules:
     fun start(goal: String) {
         if (!Llm.configured(act)) { say("First add an AI key and choose a model in Settings"); return }
         val key = ""
-        if (running) {
-            // A new request replaces the running task: stop the old one, then start this one.
-            cancelled = true
-            post("Switching to your new request.")
-            Thread {
-                var waited = 0
-                while (running && waited < 60) { Thread.sleep(50); waited++ }
-                if (!running) start(goal) else say("Could not switch. Press the mic to stop and try again.")
-            }.start()
-            return
-        }
+        // A new request replaces the running one at once: no waiting. The old run notices its number is old and stops.
+        if (running) post("Switching to your new request.")
         curGoal = goal
         prefs.edit().putString("agent_log", "GOAL: " + goal + "\n").apply()
+        val gen = ++generation
         running = true
         cancelled = false
         Thread {
@@ -84,25 +78,31 @@ Rules:
             try {
                 KeepAliveService.start(act)
                 kept = true
-                loop(key, goal)
+                loop(key, goal, gen)
             }
             catch (e: Exception) {
                 val offline = e is java.net.UnknownHostException || e is java.net.SocketTimeoutException
                 post(if (offline) "No internet connection. Phone commands like open app still work." else "Error: ${e.message}")
                 Reporter.send("agent", "Error: " + e.message, goal)
             }
-            finally { running = false; AgentService.instance?.hud?.hide(); if (kept) KeepAliveService.stop(act) }
+            finally {
+                if (gen == generation) {
+                    running = false
+                    AgentService.instance?.hud?.hide()
+                    if (kept) KeepAliveService.stop(act)
+                }
+            }
         }.start()
     }
 
-    private fun loop(key: String, goal: String) {
+    private fun loop(key: String, goal: String, gen: Int) {
         val history = mutableListOf<String>()
         val asked = mutableSetOf<String>()
         var lastScreen = ""
         AgentService.instance?.hud?.show("Miss Sara is starting...")
         val started = System.currentTimeMillis()
         for (step in 1..12) {
-            if (cancelled) { post("Stopped"); return }
+            if (cancelled || gen != generation) { if (gen == generation) post("Stopped"); return }
             if (System.currentTimeMillis() - started > 90_000L) { post("Stopped: this took too long. Try a simpler request."); return }
             val svc = AgentService.instance
             if (svc == null && step == 1) post("Accessibility is off, so I can only chat. Turn it on for phone control.")
@@ -160,7 +160,7 @@ Rules:
                 "quick_settings" -> history.add("result: " + Device.quickSettings())
                 "wait" -> {
                     val w = obj.optInt("seconds", 5).coerceIn(1, 60)
-                    for (k in 0 until w) { if (cancelled) break; Thread.sleep(1000) }
+                    for (k in 0 until w) { if (cancelled || gen != generation) break; Thread.sleep(1000) }
                     history.add("result: waited")
                 }
                 "share_media" -> history.add("result: " + Share.latest(act, obj.optString("app"), obj.optString("kind"), obj.optString("caption").ifBlank { null }))

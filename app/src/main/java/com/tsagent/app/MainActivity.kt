@@ -473,6 +473,12 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Adds the typed key(s) to the saved list for this provider. The saved keys are kept; duplicates are dropped. */
+    private fun mergedKeys(prefKey: String, typed: String): String {
+        val split = { x: String -> x.split(Regex("[\\r\\n,]+")).map { it.trim() }.filter { it.isNotEmpty() } }
+        return (split(prefs.getString(prefKey, "") ?: "") + split(typed)).distinct().joinToString(",")
+    }
+
     private fun submit(text: String) {
         if (text.isBlank()) return
         show("YOU", text)
@@ -855,11 +861,12 @@ class MainActivity : Activity() {
                 setOnClickListener {
                     val k = f.text.toString().trim()
                     if (k.isEmpty()) { show("AGENT", "Type one key in the box first."); return@setOnClickListener }
-                    val cur = (prefs.getString(prefKey, "") ?: "").split(Regex("[\\r\\n,]+")).map { it.trim() }.filter { it.isNotEmpty() }
-                    val list = (cur + k).distinct()
-                    prefs.edit().putString(prefKey, list.joinToString(",")).apply()
+                    val merged = mergedKeys(prefKey, k)
+                    prefs.edit().putString(prefKey, merged).apply()
                     f.setText("")
-                    show("AGENT", "$name key added. Saved keys: ${list.size}. Add the next one.")
+                    val count = merged.split(",").size
+                    text = "ADD $name KEY TO LIST (saved: $count)"
+                    show("AGENT", "$name key added. Saved keys: $count. Add the next one.")
                 }
             }
         }
@@ -875,7 +882,7 @@ class MainActivity : Activity() {
             val ed = prefs.edit()
             if (api.text.isNotBlank()) ed.putString("apikey", api.text.toString().trim())
             listOf("openai" to keyOpenai, "gemini" to keyGemini, "grok" to keyGrok, "custom" to keyCustom)
-                .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", f.text.toString().trim()) }
+                .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", mergedKeys("key_$p", f.text.toString())) }
             ed.putString("llm_base", baseCustom.text.toString().trim())
             ed.apply()
         }
@@ -935,6 +942,8 @@ class MainActivity : Activity() {
         })
         val elKey = field(if (!prefs.getString("el_key", null).isNullOrBlank()) "ElevenLabs API key (saved, only on this phone)" else "ElevenLabs API key (optional, natural female voice)", "el_key", true)
         col.addView(keyAddButton("el_key", elKey, "ELEVENLABS"))
+        // Manual voice ID: works even when the voice list cannot be loaded (key without voice-list permission).
+        val elVoiceId = field("ElevenLabs voice ID (paste it from ElevenLabs > Voices, a female voice)", "el_voice")
         fun elLabel() = "ElevenLabs voice: " + (if (prefs.getBoolean("el_on", true)) "ON" else "OFF")
         col.addView(Button(this).apply {
             typeface = mono; text = elLabel()
@@ -943,9 +952,10 @@ class MainActivity : Activity() {
         col.addView(Button(this).apply {
             typeface = mono; text = "CHOOSE FEMALE VOICE" + (prefs.getString("el_voice_name", null)?.let { " ($it)" } ?: "")
             setOnClickListener {
-                val key = elKey.text.toString().trim().ifBlank { prefs.getString("el_key", "") ?: "" }
+                val typed = elKey.text.toString().trim()
+                if (typed.isNotBlank()) { prefs.edit().putString("el_key", mergedKeys("el_key", typed)).apply(); elKey.setText("") }
+                val key = prefs.getString("el_key", "") ?: ""
                 if (key.isBlank()) { show("AGENT", "Enter your ElevenLabs API key first"); return@setOnClickListener }
-                prefs.edit().putString("el_key", key).apply()
                 show("AGENT", "Loading female voices...")
                 Thread {
                     val (voices, err) = Voice.femaleVoices(key)
@@ -1169,12 +1179,16 @@ class MainActivity : Activity() {
                 val ed = prefs.edit()
                 if (api.text.isNotBlank()) ed.putString("apikey", api.text.toString().trim())
                 listOf("openai" to keyOpenai, "gemini" to keyGemini, "grok" to keyGrok, "custom" to keyCustom)
-                    .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", f.text.toString().trim()) }
+                    .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", mergedKeys("key_$p", f.text.toString())) }
                 ed.putString("llm_base", baseCustom.text.toString().trim())
                 ed.putString("token", tok.text.toString().trim())
                 ed.putString("chat", chat.text.toString().trim())
                 ed.putString("vlang", vlang.text.toString().trim())
-                if (elKey.text.isNotBlank()) ed.putString("el_key", elKey.text.toString().trim())
+                if (elKey.text.isNotBlank()) ed.putString("el_key", mergedKeys("el_key", elKey.text.toString()))
+                val vid = elVoiceId.text.toString().trim()
+                if (vid.isNotBlank() && vid != prefs.getString("el_voice", "")) {
+                    ed.putString("el_voice", vid).putString("el_voice_name", "voice ID " + vid.take(6))
+                }
                 if (Entitlements.isOwner(this)) ed.putString("fav_song_link", songLink.text.toString().trim())
                 ed.putString("comp_name", compName.text.toString().trim())
                 ed.putString("comp_call", compCall.text.toString().trim())
