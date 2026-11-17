@@ -49,8 +49,8 @@ class MainActivity : Activity() {
     private var titleView: GlitchTitle? = null
     /** True while the user wants the app to keep listening; only the mic button turns it off. */
     private var keepListening = false
-    /** Errors in a row while listening; a few are retried, then listening stops with a message. */
-    private var errStreak = 0
+    /** True while the recognizer is actually open, so two listeners never run at the same time. */
+    private var listening = false
     private lateinit var sysLine: TextView
     private lateinit var tasksText: TextView
     private lateinit var newsText: TextView
@@ -336,7 +336,7 @@ class MainActivity : Activity() {
             setPadding(dp(14), dp(9), dp(14), dp(9)); setOnClickListener { stopAll() }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(12); marginStart = dp(12) })
         mic = MicView(this).apply {
-            setOnClickListener { if (keepListening || Agent.running) stopKeep() else { keepListening = prefs.getBoolean("auto_listen", true); listen() } }
+            setOnClickListener { if (keepListening) stopKeep() else { keepListening = true; listen() } }
             setOnLongClickListener { show("AGENT", "Voice language: " + toggleVoiceLang()); true }
         }
         controls.addView(mic, LinearLayout.LayoutParams(dp(80), dp(80)))
@@ -368,6 +368,7 @@ class MainActivity : Activity() {
         show("AGENT", "Updates and support: ${Config.TELEGRAM_URL}")
 
         Agent.onSpeak = speakHandler
+        keepListening = prefs.getBoolean("auto_listen", true)
         loadAccount()
         checkRemote()
         refreshNews()
@@ -388,7 +389,7 @@ class MainActivity : Activity() {
         super.onResume()
         trace("onResume")
         // The user came back to the app: a task still running in the background must not press Home or Back and kick them out.
-        if (Agent.running) { Agent.cancelled = true; show("AGENT", "Stopped the running task because you opened the app.") }
+        if (keepListening) listen()
         if (prefs.getBoolean("acc_lost", false) && AgentService.instance == null)
             show("AGENT", "Accessibility was turned off by Android. Turn it on again: SETTINGS > ENABLE ACCESSIBILITY.")
         try { resumeSafe() } catch (e: Throwable) { showStartupError(e) }
@@ -406,6 +407,8 @@ class MainActivity : Activity() {
         super.onPause()
         trace("onPause")
         try { pauseSafe() } catch (e: Throwable) { showStartupError(e) }
+        listening = false
+        main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
     }
 
     private fun pauseSafe() {
@@ -513,60 +516,94 @@ class MainActivity : Activity() {
     /** After a reply finishes, listen again so the conversation keeps going. */
     private fun afterSpeak() {
         if (!keepListening) return
-        main.postDelayed({ if (keepListening && stage.state == 0) listen() }, 600)
+        main.postDelayed({ if (keepListening) listen() }, 300)
+    }
+
+    /** Picks the best of the recognizer's guesses. If one contains the name, it wins; a lone "ছায়া" is read as the name. */
+    private fun pickSpoken(alts: List<String>): String? {
+        val list = alts.filter { it.isNotBlank() }
+        if (list.isEmpty()) return null
+        val best = list.firstOrNull { it.contains("সারা") || it.contains("sara", ignoreCase = true) } ?: list.first()
+        return best.replace(Regex("(^|\\s)ছায়া(?=$|\\s|[?!।.,])"), "$1সারা")
+    }
+
+    /** The user started talking while the phone was replying or working: stop the reply and the task, then listen. */
+    private fun interrupt() {
+        Agent.cancelled = true
+        tts?.stop(); Voice.stop()
+        if (stage.state == 2) setState(1)
     }
 
     /** Only the user turns listening off. */
     private fun stopKeep() {
         keepListening = false
         Agent.cancelled = true
+        listening = false
+        tts?.stop(); Voice.stop()
         main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
         setState(0)
         show("AGENT", "Stopped. Tap the mic to talk again.")
     }
 
     private fun listen() {
+        if (listening) return
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 2); return
         }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             show("AGENT", "Speech recognition was not found on this phone. Update the Google app."); return
         }
-        tts?.stop(); Voice.stop()
+        listening = true
         recognizer?.destroy()
         recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
             setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(p: Bundle?) { setState(1) }
+                override fun onReadyForSpeech(p: Bundle?) { if (stage.state == 0) setState(1) }
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(v: Float) {}
                 override fun onBufferReceived(b: ByteArray?) {}
                 override fun onEndOfSpeech() {}
                 override fun onError(e: Int) {
-                    setState(0)
+                    listening = false
                     main.post { recognizer?.destroy(); recognizer = null }
-                    if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS && ++errStreak <= 5) {
-                        main.postDelayed({ if (keepListening) listen() }, 400)
-                    } else {
+                    if (stage.state == 1) setState(0)
+                    if (!keepListening) return
+                    if (e == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                         keepListening = false
-                        show("AGENT", "Could not hear you, tap again")
+                        show("AGENT", "Microphone permission is needed. Allow it in settings.")
+                        return
                     }
+                    // Silence, no match, busy or network: just listen again. The mic does not turn off on its own.
+                    val wait = when (e) {
+                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> 1500L
+                        SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT, SpeechRecognizer.ERROR_SERVER -> 2000L
+                        else -> 300L
+                    }
+                    main.postDelayed({ if (keepListening) listen() }, wait)
                 }
                 override fun onResults(r: Bundle?) {
-                    setState(0)
-                    val t = r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                    if (t != null) submit(t)
+                    listening = false
+                    main.post { recognizer?.destroy(); recognizer = null }
+                    if (stage.state == 1) setState(0)
+                    val t = pickSpoken(r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty())
+                    if (!t.isNullOrBlank()) submit(t)
+                    if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300)
                 }
-                override fun onPartialResults(b: Bundle?) {}
+                override fun onPartialResults(b: Bundle?) {
+                    // Talking over the phone interrupts it, so the user is always heard first.
+                    val p = b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                    if (!p.isNullOrBlank() && p.trim().length >= 3 && (Agent.running || stage.state == 2)) interrupt()
+                }
                 override fun onEvent(t: Int, b: Bundle?) {}
             })
             startListening(
                 Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     .putExtra(RecognizerIntent.EXTRA_LANGUAGE, voiceLang())
-                    // wait for a full 3 seconds of silence before deciding the sentence is finished
-                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
-                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
-                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L)
+                    .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    // a short pause ends the sentence, so the answer comes quickly
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 800L)
             )
         }
     }

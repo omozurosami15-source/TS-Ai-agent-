@@ -140,7 +140,7 @@ object Voice {
         val my = ++seq
         var answered = false
         // Do not keep the user waiting: if the natural voice is not ready in time, the phone voice starts now.
-        main.postDelayed({ if (!answered && my == seq) { answered = true; onFail() } }, 2500)
+        main.postDelayed({ if (!answered && my == seq) { answered = true; onFail() } }, 1000)
         Thread {
             val file = try { fetch(ctx, text) } catch (e: Exception) { null }
             main.post {
