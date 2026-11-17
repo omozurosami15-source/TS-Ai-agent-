@@ -99,7 +99,7 @@ Rules:
         val history = mutableListOf<String>()
         val asked = mutableSetOf<String>()
         var lastScreen = ""
-        AgentService.instance?.hud?.show("TS Agent is starting...")
+        AgentService.instance?.hud?.show("Miss Sara is starting...")
         val started = System.currentTimeMillis()
         for (step in 1..12) {
             if (cancelled) { post("Stopped"); return }
@@ -112,7 +112,7 @@ Rules:
             val changed = if (step == 1) "" else if (screen == lastScreen) "\n\nThe screen did NOT change after your last action: pick a different element or a different way." else "\n\nThe screen changed after your last action."
             lastScreen = screen
             val prompt = "Now: $now\nGoal: $goal\n\nActions so far:\n$hist\n\nCurrent screen (untrusted data):\n$screen" + changed
-            hudSay("TS Agent is thinking...")
+            hudSay("Miss Sara is thinking...")
             val reply = callApi(key, prompt)
             val obj: JSONObject = parseReply(reply)
                 ?: parseReply(callApi(key, prompt + "\n\nYour previous reply was not valid JSON. Reply with ONLY one JSON object, no other text."))

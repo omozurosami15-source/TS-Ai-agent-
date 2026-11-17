@@ -202,7 +202,7 @@ class StageView(ctx: Context) : View(ctx) {
         ringPaint.textSize = 8.5f * d
         ringPaint.color = withAlpha(cur, 140)
         for (k in 0..1) {
-            c.drawTextOnPath("TS-AGENT // SECURE LINK // VOICE ENGINE ONLINE // ", ring,
+            c.drawTextOnPath("MISS SARA // SECURE LINK // VOICE ENGINE ONLINE // ", ring,
                 (t * 38f * d * fast + k * ringLen / 2f) % ringLen, 0f, ringPaint)
         }
 

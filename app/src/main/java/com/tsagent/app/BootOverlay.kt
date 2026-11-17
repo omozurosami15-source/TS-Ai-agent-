@@ -11,7 +11,7 @@ import android.view.View
 class BootOverlay(ctx: Context, private val onDone: () -> Unit) : View(ctx) {
     private val d = resources.displayMetrics.density
     private val lines = listOf(
-        "TS-AGENT v0.1 // BOOT",
+        "MISS SARA v0.1 // BOOT",
         "loading kernel modules ........ OK",
         "mounting accessibility bridge . OK",
         "calibrating voice engine ..... OK",

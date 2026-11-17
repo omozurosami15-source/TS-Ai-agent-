@@ -122,50 +122,102 @@ class MainActivity : Activity() {
         } catch (_: Exception) {}
     }
 
-    /** Opening screen: the logo animates and the app shows the loading bar for 5 seconds, then the main screen appears. */
+    /** Opening screen: the logo floats over an animated glow, the name types in, and the loading bar fills for 5 seconds; then the main screen appears. */
     private fun startSplash() {
+        val anims = ArrayList<android.animation.Animator>()
         val panel = android.widget.FrameLayout(this).apply { setBackgroundColor(android.graphics.Color.BLACK) }
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = android.view.Gravity.CENTER_HORIZONTAL }
+
+        // logo with glow behind it
+        val stage = android.widget.FrameLayout(this)
+        val glow = SplashGlow(this)
         val logo = android.widget.ImageView(this).apply {
             setImageResource(R.drawable.splash_logo)
             scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-            scaleX = 0.5f; scaleY = 0.5f; alpha = 0f
+            scaleX = 0.85f; scaleY = 0.85f; alpha = 1f; rotation = -4f
         }
-        logo.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(900)
-            .setInterpolator(android.view.animation.OvershootInterpolator()).start()
-        android.animation.ObjectAnimator.ofFloat(logo, "alpha", 0.55f, 1f).apply {
-            duration = 1400; startDelay = 900
+        stage.addView(glow, android.widget.FrameLayout.LayoutParams(-1, -1))
+        stage.addView(logo, android.widget.FrameLayout.LayoutParams(dp(200), dp(200), android.view.Gravity.CENTER))
+        logo.animate().scaleX(1f).scaleY(1f).rotation(0f).setDuration(700)
+            .setInterpolator(android.view.animation.OvershootInterpolator(1.4f)).start()
+        // after the entrance: gentle floating up and down, and a slow breathing size change
+        anims.add(android.animation.ObjectAnimator.ofFloat(logo, "translationY", -dp(7).toFloat(), dp(7).toFloat()).apply {
+            duration = 1700; startDelay = 700
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
             repeatCount = android.animation.ObjectAnimator.INFINITE
             repeatMode = android.animation.ObjectAnimator.REVERSE
             start()
-        }
+        })
+        anims.add(android.animation.ObjectAnimator.ofPropertyValuesHolder(logo,
+            android.animation.PropertyValuesHolder.ofFloat("scaleX", 1f, 1.05f),
+            android.animation.PropertyValuesHolder.ofFloat("scaleY", 1f, 1.05f)).apply {
+            duration = 1300; startDelay = 700
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            repeatCount = android.animation.ObjectAnimator.INFINITE
+            repeatMode = android.animation.ObjectAnimator.REVERSE
+            start()
+        })
+
+        // name types in letter by letter
+        val name = "MISS SARA"
         val title = TextView(this).apply {
-            text = "TS AGENT"; typeface = mono; textSize = 22f; setTextColor(Theme.G)
-            gravity = android.view.Gravity.CENTER; alpha = 0f; setPadding(0, dp(18), 0, dp(18))
+            text = ""; typeface = mono; textSize = 26f; setTextColor(Theme.G); letterSpacing = 0.16f
+            setShadowLayer(dp(10).toFloat(), 0f, 0f, Theme.G)
+            gravity = android.view.Gravity.CENTER; setPadding(0, dp(10), 0, dp(2)); minHeight = dp(52)
         }
-        title.animate().alpha(1f).setStartDelay(500).setDuration(700).start()
+        anims.add(android.animation.ValueAnimator.ofInt(0, name.length).apply {
+            startDelay = 150; duration = name.length * 100L
+            interpolator = android.view.animation.LinearInterpolator()
+            addUpdateListener { title.text = name.substring(0, it.animatedValue as Int) }
+            start()
+        })
+        // thin neon line under the name, fades out at both ends
+        val accent = View(this).apply {
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(0x0000FF9C, Theme.G, 0xFFB04CFF.toInt(), 0x00B04CFF)).apply { cornerRadius = dp(2).toFloat() }
+            alpha = 0f
+        }
+        accent.animate().alpha(1f).setStartDelay(1000).setDuration(600).start()
+        val tag = TextView(this).apply {
+            text = "My AI Agent"; typeface = mono; textSize = 12f; setTextColor(0xFFD08BFF.toInt())
+            letterSpacing = 0.1f; gravity = android.view.Gravity.CENTER; alpha = 0f; translationY = dp(8).toFloat()
+            setPadding(0, 0, 0, dp(18))
+        }
+        tag.animate().alpha(1f).translationY(0f).setStartDelay(1100).setDuration(600).start()
+
+        // loading bar + text
         val trackW = dp(240)
-        val track = android.widget.FrameLayout(this).apply { setBackgroundColor(Theme.DIM) }
+        val track = android.widget.FrameLayout(this).apply { setBackgroundColor(Theme.DIM and 0x55FFFFFF) }
         val fill = View(this).apply { setBackgroundColor(Theme.G) }
         track.addView(fill, android.widget.FrameLayout.LayoutParams(0, -1))
         val load = TextView(this).apply {
-            text = "LOADING..."; typeface = mono; textSize = 12f; setTextColor(Theme.DIM)
+            text = "LOADING"; typeface = mono; textSize = 12f; setTextColor(Theme.DIM)
             gravity = android.view.Gravity.CENTER; setPadding(0, dp(10), 0, 0)
         }
-        box.addView(logo, LinearLayout.LayoutParams(dp(230), dp(230)))
+        box.addView(stage, LinearLayout.LayoutParams(dp(320), dp(320)))
         box.addView(title, LinearLayout.LayoutParams(-2, -2))
+        box.addView(accent, LinearLayout.LayoutParams(dp(200), dp(2)))
+        box.addView(tag, LinearLayout.LayoutParams(-2, -2))
         box.addView(track, LinearLayout.LayoutParams(trackW, dp(4)))
         box.addView(load, LinearLayout.LayoutParams(-2, -2))
         panel.addView(box, android.widget.FrameLayout.LayoutParams(-2, -2, android.view.Gravity.CENTER))
         addContentView(panel, android.widget.FrameLayout.LayoutParams(-1, -1))
-        android.animation.ValueAnimator.ofInt(0, trackW).apply {
+        anims.add(android.animation.ValueAnimator.ofInt(0, 100).apply {
             duration = 5000
-            addUpdateListener { fill.layoutParams = android.widget.FrameLayout.LayoutParams(it.animatedValue as Int, -1) }
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            addUpdateListener {
+                val pct = it.animatedValue as Int
+                fill.layoutParams = android.widget.FrameLayout.LayoutParams(trackW * pct / 100, -1)
+                load.text = "LOADING" + ".".repeat(pct / 6 % 3 + 1) + "  " + pct + "%"
+            }
             start()
-        }
+        })
         main.postDelayed({
-            panel.animate().alpha(0f).setDuration(500)
-                .withEndAction { (panel.parent as? android.view.ViewGroup)?.removeView(panel) }.start()
+            panel.animate().alpha(0f).scaleX(1.06f).scaleY(1.06f).setDuration(500)
+                .withEndAction {
+                    anims.forEach { a -> a.cancel() }
+                    (panel.parent as? android.view.ViewGroup)?.removeView(panel)
+                }.start()
         }, 5000)
     }
 
@@ -201,7 +253,7 @@ class MainActivity : Activity() {
 
         // header
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val gt = GlitchTitle(this, prefs.getString("srv_name", "TS-AGENT").orEmpty().ifBlank { "TS-AGENT" })
+        val gt = GlitchTitle(this, "MISS SARA")
         titleView = gt
         header.addView(gt, LinearLayout.LayoutParams(0, -2, 1f))
         online = TextView(this).apply {
@@ -636,7 +688,6 @@ class MainActivity : Activity() {
         prefs.edit().putString("srv_aliases", al).apply()
         CommandRunner.setServerAliases(al)
         runOnUiThread {
-            if (nm.isNotBlank()) titleView?.setLabel(nm.uppercase())
             val sv = j.optString("app_version").toIntOrNull() ?: 0
             if (sv > (Config.APP_VERSION.toIntOrNull() ?: 0)) show("AGENT", "A new version (" + sv + ") is available. Download: " + j.optString("app_url"))
             val n = j.optString("notice")
@@ -1011,7 +1062,7 @@ class MainActivity : Activity() {
                     return@setOnClickListener
                 }
                 AlertDialog.Builder(this@MainActivity).setTitle("Sara Watch")
-                    .setMessage("While Sara Watch is ON, TS Agent takes a small still picture of your screen and, if you choose them, your front and back camera every few seconds, and sends it to the AI provider you set up, so Sara can see what you do and speak to you on her own.\n\n" +
+                    .setMessage("While Sara Watch is ON, Miss Sara takes a small still picture of your screen and, if you choose them, your front and back camera every few seconds, and sends it to the AI provider you set up, so Sara can see what you do and speak to you on her own.\n\n" +
                         "- A notification with PAUSE and STOP is always visible. Android also shows its camera indicator.\n" +
                         "- Nothing is saved on the phone and nothing goes to any TS server.\n" +
                         "- Password screens and apps on your block list are skipped. It pauses when the phone is locked or in a call.\n" +
