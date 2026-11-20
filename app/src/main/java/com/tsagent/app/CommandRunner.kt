@@ -181,6 +181,14 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
         val local = LocalBrain.handle(act, t)
         if (local != null) { say(local); Agent.onSpeak?.invoke(local.take(240), null); return }
         when {
+            // A task is running and the user asks something else: answer the question, the task keeps going.
+            Agent.running && l in setOf("থামো", "থামাও", "বাদ দাও", "cancel", "বন্ধ করো") -> { Agent.cancelled = true; say("Stopped the task.") }
+            Agent.running && Regex("(?i)^(what |how |why |when |where |who |is |are |can )|^(কী|কি|কেন|কখন|কোথায়|কে|কত|কেমন)|\\?$").containsMatchIn(t) -> Thread {
+                val answer = try {
+                    Llm.complete(act, "You are Miss Sara. Answer briefly in the same language as the question. A task is running in the background; do not say you control the phone right now.", t, 300, false)
+                } catch (e: Exception) { "Could not answer right now." }
+                say(answer)
+            }.start()
             l == "stop" -> { Agent.cancelled = true; SongPlayer.stop(); Autoplay.stop(); say("Stopping...") }
             l.startsWith("keyset ") -> {
                 prefs.edit().putString("apikey", t.substring(7).trim()).apply()
@@ -206,6 +214,46 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
             l == "back" -> withService { it.back(); say("Back") }
             l == "home" -> withService { it.home(); say("Home") }
             l == "scroll" -> withService { it.scrollDown(); say("Scroll") }
+            // Writing only (no phone control): a post or caption is written well and copied to the clipboard.
+            !Agent.running && Llm.configured(act) && Regex("(?i)^(write (a )?(post|caption)|post |caption |পোস্ট|ক্যাপশন)").containsMatchIn(t) -> Thread {
+                val text = try {
+                    Llm.complete(act, "You are an excellent social media writer. Write the post or caption the user asks for: clear, natural and well structured, in the language the user asks for (Bengali or English). Use short paragraphs and a few fitting emojis. Return only the text to post, with no explanation.", t, 1200, false)
+                } catch (e: Exception) { "Could not write it right now." }
+                try {
+                    val cm = act.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("post", text))
+                } catch (e: Exception) { }
+                say(text + "\n\n(Copied. Paste it in the app you want.)")
+            }.start()
+            // Fast WhatsApp: "wa 8801XXXXXXXXX : your message" opens and sends with no AI call.
+            l.startsWith("wa ") && t.contains(":") -> {
+                val body = t.substring(3)
+                val num = body.substringBefore(":").trim()
+                val msg = body.substringAfter(":").trim()
+                say(FastSend.whatsapp(act, num, msg))
+            }
+            // Daily job: 08:00 and 19:00 with the phone's own agent.
+            l in setOf("daily on", "দৈনিক চালু", "রোজ চালু") -> say(DailyJobs.on(act))
+            l in setOf("daily off", "দৈনিক বন্ধ", "রোজ বন্ধ") -> say(DailyJobs.off(act))
+            // Ramadan: days until it starts, prayer alarms, and turning off pet words in Ramadan.
+            l in setOf("ramadan", "রোজা", "রোজা কতদিন", "রোজা কবে") -> Thread { say(Ramadan.daysUntil()) }.start()
+            l in setOf("রোজা মোড চালু", "ramadan mode on") -> { act.getSharedPreferences("cfg", android.content.Context.MODE_PRIVATE).edit().putBoolean("ramadan_mode", true).apply(); say("Ramadan mode on. I will not use pet words.") }
+            l in setOf("রোজা মোড বন্ধ", "ramadan mode off") -> { act.getSharedPreferences("cfg", android.content.Context.MODE_PRIVATE).edit().putBoolean("ramadan_mode", false).apply(); say("Ramadan mode off.") }
+            l.startsWith("prayer alarms") || l.startsWith("নামাজের অ্যালার্ম") -> Thread {
+                val city = if (l.startsWith("prayer alarms")) t.substring(13).trim() else t.substring("নামাজের অ্যালার্ম".length).trim()
+                say(AppAlarms.scheduleToday(act, city))
+            }.start()
+            // Bangladesh: dollar rate and prayer times, from free sources without a key.
+            l in setOf("dollar rate", "dollar", "ডলার রেট", "ডলারের দাম") -> Thread { say(Bangladesh.dollarRate()) }.start()
+            l.startsWith("prayer ") || l.startsWith("নামাজের সময় ") -> Thread {
+                val city = if (l.startsWith("prayer ")) t.substring(7).trim() else t.substring("নামাজের সময় ".length).trim()
+                say(Bangladesh.prayerTimes(city))
+            }.start()
+            // Real network: current weather for a city (no key needed).
+            l.startsWith("weather ") || l.startsWith("আবহাওয়া ") -> Thread {
+                val city = t.substringAfter(" ").trim()
+                say(Weather.report(city))
+            }.start()
             l.startsWith("ai ") -> Agent(act, say).start(t.substring(3))
             Llm.configured(act) -> Agent(act, say).start(original)
             else -> say("Unknown command. Try: open youtube, scroll down, share latest video to youtube, set timer 5 minutes, run <routine>. For free-form tasks add an AI key in SETTINGS.")
