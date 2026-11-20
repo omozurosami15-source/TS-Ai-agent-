@@ -27,7 +27,9 @@ object Voice {
         if (!p.getBoolean("el_on", true)) return false
         val serverReady = Config.enabled() && !p.getString("svtoken", "").isNullOrBlank()
         val localReady = !p.getString("el_key", "").isNullOrBlank() && !p.getString("el_voice", "").isNullOrBlank()
-        return serverReady || localReady
+        // when every saved key ran out of quota, pause ElevenLabs for an hour so the phone voice starts at once
+        val paused = System.currentTimeMillis() < p.getLong("el_pause_until", 0L)
+        return serverReady || (localReady && !paused)
     }
 
     /** Asks the server's speak endpoint. The admin's ElevenLabs key and voice ID are used there, never sent to the phone. */
@@ -134,7 +136,12 @@ object Voice {
             if (code == 200 && bytes.isNotEmpty()) break
             if (code !in listOf(401, 402, 403, 429)) break
         }
-        if (code != 200 || bytes.isEmpty()) return null
+        if (code != 200 || bytes.isEmpty()) {
+            if (code in listOf(401, 402, 403, 429)) {
+                prefs(ctx).edit().putLong("el_pause_until", System.currentTimeMillis() + 60 * 60 * 1000L).apply()
+            }
+            return null
+        }
         val f = File(ctx.cacheDir, "tts_${System.nanoTime()}.mp3")
         f.writeBytes(bytes)
         return f
@@ -169,6 +176,33 @@ object Voice {
     private fun release() {
         player?.let { try { it.stop() } catch (e: Exception) {}; it.release() }
         player = null
+    }
+
+    /** Makes a spoken voice file from text with the ElevenLabs voice, then shares it to one app (for example imo or Telegram). */
+    fun shareToApp(ctx: Context, text: String, pkg: String): String {
+        val f = fetch(ctx, text) ?: return "Could not make the voice. Check the ElevenLabs key and voice ID in Settings."
+        return try {
+            val resolver = ctx.contentResolver
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, "voice_" + System.currentTimeMillis() + ".mp3")
+                put(android.provider.MediaStore.Downloads.MIME_TYPE, "audio/mpeg")
+                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: return "Could not save the voice file."
+            resolver.openOutputStream(uri)?.use { out -> f.inputStream().use { it.copyTo(out) } }
+            val done = android.content.ContentValues().apply { put(android.provider.MediaStore.Downloads.IS_PENDING, 0) }
+            resolver.update(uri, done, null, null)
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND)
+                .setType("audio/mpeg")
+                .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                .setPackage(pkg)
+                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+            "Voice is ready and sent to $pkg. Now pick the person in that app and tap Send."
+        } catch (e: Exception) {
+            "Could not share the voice: " + e.message
+        }
     }
 
     fun stop() { seq++; release() }

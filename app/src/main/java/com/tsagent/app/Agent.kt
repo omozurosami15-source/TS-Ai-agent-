@@ -54,6 +54,12 @@ Rules:
 - TS Agent is owned and developed by ${Config.OWNER_NAME}. If asked who owns or made it, answer with that name. If asked for the owner's contact number, give ${Config.OWNER_CONTACT}.
 - You may open login and sign-up screens and fill in the user's name and email from memory. Never type passwords, one-time codes or payment details and never solve captchas: stop with "done" or "need_permission"-style guidance and ask the user to do that step, then continue when they say so. Never create accounts in bulk.
 - To keep watching a feed, alternate "wait" and "scroll" (or use "autoplay").
+- Websites: {"action":"web_list","site":"<name>","path":"<folder>"}, {"action":"web_read","site":"<name>","path":"<file>"}, {"action":"web_write","site":"<name>","path":"<file>","content":"<whole file text>"}, {"action":"web_db","site":"<name>","name":"<short db name>"} (creates a database, a user and full rights), and {"action":"web_check","url":"<site address>"} to open the site and see if it answers. Write the whole file, not a part. Paths are relative to the document root. A task that names a site is already approved for that site: do the whole job (files, database, config, then web_check) without asking. Never delete files. Never write outside the site. If something fails, say what failed and stop.
+- Voice message: {"action":"voice_send","app":"imo","text":"<what to say>"} makes a spoken voice with the user's ElevenLabs voice and opens the share screen of that app. Then pick the person and tap Send with normal steps. Use it when the user asks you to send a voice to someone.
+- Posts and long messages: write them fully, with proper sentences, paragraphs and emojis where natural, in the language the user asked for. Type the whole text in one type step. Do not cut it short.
+- Looking: {"action":"look_screen"} takes a picture of the phone screen and tells you what is on it, so use it when the text is not enough (images, videos, games, unclear buttons). {"action":"look_camera","side":"back"} or "front" looks through the camera, for questions like "what is in front of me". Use these only when needed, because each look costs one AI call.
+- Photo: {"action":"take_photo","side":"back"} takes a photo and saves it to Pictures/Miss Sara. Use "front" for the selfie camera. {"action":"record_video"} opens the camera in video mode; the user presses record and stop on that screen.
+- Termux (phone terminal): {"action":"termux","job":"animate","text":"TS SMM"} types the text out with an animation in Termux. {"action":"termux","job":"gitlog"} shows the last 10 commits of the Miss Sara project. {"action":"termux","job":"date"} shows the phone date. Only these jobs exist. Text is letters, digits and spaces, up to 40 characters.
 - To finish a step on the same screen in one reply, use {"action":"batch","steps":[{"action":"type","index":<n>,"text":"..."},{"action":"tap","index":<n>}]}. Allowed inside a batch: type, tap, scroll, back, home. Indexes come from the current screen only. Do not put open_app or confirm in a batch: open the app in its own step, and use confirm before sending anything important.
 - add_event, draft_sms and draft_email only open a pre-filled screen; the user taps the final button. Use the current time given in the prompt to work out dates like "tomorrow evening".
 - If the same step fails twice, try another way. If stuck, use "done" and say why.
@@ -66,6 +72,9 @@ Rules:
     private fun post(s: String) = main.post { say(s) }
     private fun speak(s: String, lang: String? = null) = main.post { onSpeak?.invoke(s, lang) }
 
+    /** Sites the user named in this task; they are approved for this run only. */
+    @Volatile private var runApprovedSites: List<String> = emptyList()
+
     fun start(goal: String) {
         if (!Llm.configured(act)) { say("First add an AI key and choose a model in Settings"); return }
         val key = ""
@@ -73,6 +82,8 @@ Rules:
         if (running) post("Switching to your new request.")
         curGoal = goal
         prefs.edit().putString("agent_log", "GOAL: " + goal + "\n").apply()
+        runApprovedSites = CpanelClient.sites(act).map { it.name }.filter { goal.contains(it, ignoreCase = true) }
+        CpanelClient.writesThisRun = 0
         val gen = ++generation
         running = true
         cancelled = false
@@ -104,13 +115,13 @@ Rules:
         var lastScreen = ""
         AgentService.instance?.hud?.show("Miss Sara is starting...")
         val started = System.currentTimeMillis()
-        for (step in 1..12) {
+        for (step in 1..20) {
             if (cancelled || gen != generation) { if (gen == generation) post("Stopped"); return }
-            if (System.currentTimeMillis() - started > 90_000L) { post("Stopped: this took too long. Try a simpler request."); return }
+            if (System.currentTimeMillis() - started > 180_000L) { post("Stopped: this took too long. Try a simpler request."); return }
             val svc = AgentService.instance
             if (svc == null && step == 1) post("Accessibility is off, so I can only chat. Turn it on for phone control.")
             val screen = (svc?.dumpScreen() ?: "(accessibility is off: you cannot see or control the screen, only chat)").take(4000)
-            val hist = history.takeLast(10).joinToString("\n").ifEmpty { "(none)" }
+            val hist = history.takeLast(20).joinToString("\n").ifEmpty { "(none)" }
             val now = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", java.util.Locale.US).format(java.util.Date()) + " " + java.util.TimeZone.getDefault().id
             val changed = if (step == 1) "" else if (screen == lastScreen) "\n\nThe screen did NOT change after your last action: pick a different element or a different way." else "\n\nThe screen changed after your last action."
             lastScreen = screen
@@ -185,6 +196,57 @@ Rules:
                         Thread.sleep(400)
                     }
                 }
+                "web_list" -> history.add("result: " + CpanelClient.list(act, obj.optString("site"), obj.optString("path", "")))
+                "web_read" -> history.add("result: " + CpanelClient.read(act, obj.optString("site"), obj.optString("path")))
+                "web_write" -> {
+                    // If the goal named this website, the user already approved the task: write without asking each file.
+                    val site = obj.optString("site")
+                    if (!runApprovedSites.any { it.equals(site, ignoreCase = true) }) {
+                        val msg = "Write " + obj.optString("path") + " on the website " + site + "?"
+                        if (svc == null || !confirm(svc, msg)) { post("Cancelled"); return }
+                    }
+                    history.add("result: " + CpanelClient.write(act, site, obj.optString("path"), obj.optString("content")))
+                }
+                "voice_send" -> {
+                    val names = mapOf("imo" to "com.imo.android.imoim", "telegram" to "org.telegram.messenger", "whatsapp" to "com.whatsapp", "messenger" to "com.facebook.orca")
+                    val app = obj.optString("app").lowercase()
+                    history.add("result: " + Voice.shareToApp(act, obj.optString("text"), names[app] ?: app))
+                }
+                "look_screen" -> {
+                    // Looks at the real screen picture, for buttons, images and video that the text alone does not show.
+                    val jpg = AgentService.instance?.screenshotJpeg()
+                    if (jpg == null) history.add("result: could not take a screen picture (Android 11+ and Accessibility needed)")
+                    else {
+                        val seen = Llm.completeVision(act, "You are looking at a phone screen. Describe what is on it in a few short lines, and say the exact button or place to tap for this goal: " + goal, goal, listOf("Picture: the phone screen." to jpg), 400)
+                        history.add("result: screen picture says: " + seen)
+                    }
+                }
+                "look_camera" -> {
+                    // Looks through the front or back camera, for "what is in front of me".
+                    val front = obj.optString("side") == "front"
+                    val jpg = CameraSnap.snap(act, front)
+                    if (jpg == null) history.add("result: camera is not available or camera permission is off")
+                    else {
+                        val seen = Llm.completeVision(act, "You are looking through a phone camera. Describe what is in the picture clearly and briefly, in the language of the user.", goal, listOf((if (front) "Picture: the FRONT camera." else "Picture: the BACK camera.") to jpg), 400)
+                        history.add("result: camera picture says: " + seen)
+                    }
+                }
+                "take_photo" -> {
+                    // Takes a photo with the app's own camera code and saves it to Pictures/Miss Sara.
+                    val front = obj.optString("side") == "front"
+                    val jpg = CameraSnap.snap(act, front)
+                    if (jpg == null) history.add("result: camera is not available or camera permission is off")
+                    else history.add("result: " + Media.saveJpeg(act, jpg))
+                }
+                "record_video" -> {
+                    // Opens the phone's camera in video mode. Recording is started and stopped by the user on that screen.
+                    val i = android.content.Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try { act.startActivity(i); history.add("result: phone camera opened in video mode") }
+                    catch (e: Exception) { history.add("result: no camera app found") }
+                }
+                "termux" -> history.add("result: " + TermuxBridge.run(act, obj.optString("job"), obj.optString("text")))
+                "web_db" -> history.add("result: " + CpanelClient.createDb(act, obj.optString("site"), obj.optString("name")))
+                "web_check" -> history.add("result: " + CpanelClient.check(obj.optString("url")))
                 "telegram" -> history.add("result: " + CommandRunner.sendTelegram(act, obj.optString("text")))
                 "add_event" -> if (!Entitlements.premium(act)) history.add("result: paid feature (Plan 2). Tell the user.") else history.add("result: " + Actions.addEvent(act, obj.optString("title"), obj.optString("start"), obj.optInt("minutes", 60), obj.optString("notes")))
                 "set_alarm" -> if (!Entitlements.premium(act)) history.add("result: paid feature (Plan 2). Tell the user.") else history.add("result: " + Actions.setAlarm(act, obj.optInt("hour", -1), obj.optInt("minute", 0), obj.optString("label")))
@@ -280,11 +342,13 @@ Rules:
         val soul = prefs.getString("soul", "") ?: ""
         val memory = if (OwnerAuth.unlocked(act)) (prefs.getString("memory", "") ?: "") else ""
         val search = prefs.getBoolean("search_on", false) && Entitlements.premium(act) && Llm.provider(act) == "anthropic"
-        val system = SYSTEM + (if (search) "\n\nWeb search is available: use it for current facts, then answer with the done action." else "") +
+        val system = SYSTEM + "\n\nWebsites you can edit (cPanel sites): " + CpanelClient.siteNames(act) + "." + (if (search) "\n\nWeb search is available: use it for current facts, then answer with the done action." else "") +
             "\n\nPersona (from user settings):\n" + soul.ifBlank { "(default)" } +
             "\n\nThings to remember about the user:\n" + memory.ifBlank { "(none)" } + companionBlock()
         val recent = (prefs.getString("chat_log", "") ?: "").takeLast(2500)
         val full = if (recent.isBlank()) system else system + "\n\nRecent conversation (continue it naturally, the user may refer to it):\n" + recent
-        return Llm.complete(act, full, prompt, if (search) 900 else 400, search)
+        // long posts need room: 400 tokens cut them short, so a normal step gets 1800
+        val writing = Regex("(?i)post|caption|write|essay|article|message|ভয়েস|পোস্ট|লেখ").containsMatchIn(prompt.take(600))
+        return Llm.complete(act, full, prompt, if (search) 900 else if (writing) 1800 else 400, search)
     }
 }

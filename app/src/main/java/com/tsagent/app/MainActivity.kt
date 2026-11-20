@@ -1,5 +1,7 @@
 package com.tsagent.app
 
+import java.io.File
+
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
@@ -390,6 +392,7 @@ class MainActivity : Activity() {
         trace("onResume")
         // The user came back to the app: a task still running in the background must not press Home or Back and kick them out.
         if (keepListening) listen()
+        Security.showPending(this)?.let { show("SECURITY", it) }
         if (prefs.getBoolean("acc_lost", false) && AgentService.instance == null)
             show("AGENT", "Accessibility was turned off by Android. Turn it on again: SETTINGS > ENABLE ACCESSIBILITY.")
         try { resumeSafe() } catch (e: Throwable) { showStartupError(e) }
@@ -471,6 +474,25 @@ class MainActivity : Activity() {
             buf.append(text + "\n")
             render()
         }
+    }
+
+    /** Words that end the session at once. Extend this list if needed. */
+    private val rudeWords = listOf("fuck", "shit", "bitch", "madarchod", "bokachoda", "হারামি", "শুয়োর")
+
+    private fun isRude(s: String): Boolean {
+        val l = s.lowercase()
+        return rudeWords.any { l.contains(it) }
+    }
+
+    /** Stops listening and speech, then closes the assistant right away. */
+    private fun shutDownForRude() {
+        keepListening = false
+        Agent.cancelled = true
+        listening = false
+        tts?.stop(); Voice.stop()
+        main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
+        show("AGENT", "Rude language detected. Closing now. Open me again when you are ready.")
+        finishAndRemoveTask()
     }
 
     /** Adds the typed key(s) to the saved list for this provider. The saved keys are kept; duplicates are dropped. */
@@ -564,7 +586,10 @@ class MainActivity : Activity() {
         recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(p: Bundle?) { if (stage.state == 0) setState(1) }
-                override fun onBeginningOfSpeech() {}
+                override fun onBeginningOfSpeech() {
+                    // The user started talking: the phone stops its own speech at once.
+                    if (stage.state == 2) main.post { interrupt() }
+                }
                 override fun onRmsChanged(v: Float) {}
                 override fun onBufferReceived(b: ByteArray?) {}
                 override fun onEndOfSpeech() {}
@@ -591,14 +616,16 @@ class MainActivity : Activity() {
                     main.post { recognizer?.destroy(); recognizer = null }
                     if (stage.state == 1) setState(0)
                     val t = pickSpoken(r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty())
+                    if (!t.isNullOrBlank() && isRude(t)) { main.post { shutDownForRude() }; return }
                     if (!t.isNullOrBlank()) submit(t)
                     if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300)
                 }
                 override fun onPartialResults(b: Bundle?) {
                     // Talking over the phone interrupts it, so the user is always heard first.
                     val p = b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                    if (!p.isNullOrBlank() && isRude(p)) { main.post { shutDownForRude() }; return }
                     // Only while the phone is talking, and only for real words: a running task is not cut off by noise.
-                    if (!p.isNullOrBlank() && p.trim().length >= 5 && stage.state == 2) interrupt()
+                    if (!p.isNullOrBlank() && p.trim().length >= 2 && stage.state == 2) interrupt()
                 }
                 override fun onEvent(t: Int, b: Bundle?) {}
             })
@@ -689,12 +716,35 @@ class MainActivity : Activity() {
         }.start()
     }
 
+    /** The one sound used for videos. Uploading a new one replaces it. */
+    private fun pickVideoSound() {
+        startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*"), 78)
+    }
+
+    private fun removeVideoSound() {
+        File(filesDir, "video_sound.audio").delete()
+        prefs.edit().remove("video_sound_path").apply()
+        show("AGENT", "Video sound removed. No sound is used until you upload one.")
+    }
+
     private fun pickSong() {
         startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*"), 77)
     }
 
     override fun onActivityResult(req: Int, res: Int, data: Intent?) {
         super.onActivityResult(req, res, data)
+        if (req == 78 && res == RESULT_OK) {
+            data?.data?.let { uri ->
+                try {
+                    val out = File(filesDir, "video_sound.audio")
+                    contentResolver.openInputStream(uri)?.use { input -> out.outputStream().use { input.copyTo(it) } }
+                    prefs.edit().putString("video_sound_path", out.absolutePath).apply()
+                    show("AGENT", "Video sound saved. Videos will use it.")
+                } catch (e: Exception) {
+                    show("AGENT", "Could not save the sound: " + e.message)
+                }
+            }
+        }
         if (req == 77 && res == RESULT_OK) {
             data?.data?.let { uri ->
                 try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: Exception) {}
@@ -928,10 +978,9 @@ class MainActivity : Activity() {
                 }.start()
             }
         })
-        val songLink = field("Favorite song link (optional)", "fav_song_link")
         val songBtn = Button(this).apply { typeface = mono; text = "PICK FAVORITE SONG FILE"; setOnClickListener { pickSong() } }
         col.addView(songBtn)
-        if (!Entitlements.isOwner(this)) { songLink.visibility = View.GONE; songBtn.visibility = View.GONE }
+        if (!Entitlements.isOwner(this)) { songBtn.visibility = View.GONE }
         section("VOICE")
         fun autoLabel() = "Keep listening after each reply: " + (if (prefs.getBoolean("auto_listen", true)) "ON" else "OFF")
         col.addView(Button(this).apply {
@@ -979,8 +1028,6 @@ class MainActivity : Activity() {
             typeface = mono; text = searchLabel()
             setOnClickListener { prefs.edit().putBoolean("search_on", !prefs.getBoolean("search_on", false)).apply(); text = searchLabel() }
         })
-        val compName = field("Companion: her name (optional)", "comp_name")
-        val compCall = field("Companion: what she calls you (default: jaan)", "comp_call")
         section("ACCOUNT")
         val email = field("Account email", "email")
         val pass = field("Account password", "", true)
@@ -1022,6 +1069,21 @@ class MainActivity : Activity() {
             AlertDialog.Builder(this).setTitle("Paste backup text").setView(input)
                 .setPositiveButton("RESTORE") { _, _ ->
                     show("AGENT", if (importBackup(input.text.toString())) "Backup restored. Close and open the app once." else "That text is not a valid backup.")
+                }
+                .setNegativeButton("CANCEL", null).show()
+        }
+        b("VIDEO SOUND: upload a file (replaces the current one)") { pickVideoSound() }
+        b("VIDEO SOUND: remove current") { removeVideoSound() }
+        b("CPANEL SITES (paste one site per line)") {
+            val input = EditText(this).apply {
+                hint = "name | host | cpanel user | api token | public_html"
+                minLines = 4
+                setText(CpanelClient.sites(this@MainActivity).joinToString("\n") { it.name + " | " + it.host + " | " + it.user + " | " + it.token + " | " + it.root })
+            }
+            AlertDialog.Builder(this).setTitle("cPanel sites").setView(input)
+                .setPositiveButton("SAVE") { _, _ ->
+                    val n = CpanelClient.saveFromText(this, input.text.toString())
+                    show("AGENT", "Saved $n cPanel site(s). Keep the tokens private.")
                 }
                 .setNegativeButton("CANCEL", null).show()
         }
@@ -1162,7 +1224,6 @@ class MainActivity : Activity() {
                 if (on && Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3)
             }
         })
-        b("Reminder times and messages") { editNote("REMINDERS // one per line: HH:MM message. {call} = her pet name for you", "rem_lines", Reminders.DEFAULT_LINES) }
         b("News feeds") { editNote("NEWS.FEEDS // one https RSS link per line", "feeds", "") }
         b("Allow background running (battery)") { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
         b("Remaining permissions (mic, media)") {
@@ -1190,9 +1251,6 @@ class MainActivity : Activity() {
                 if (vid.isNotBlank() && vid != prefs.getString("el_voice", "")) {
                     ed.putString("el_voice", vid).putString("el_voice_name", "voice ID " + vid.take(6))
                 }
-                if (Entitlements.isOwner(this)) ed.putString("fav_song_link", songLink.text.toString().trim())
-                ed.putString("comp_name", compName.text.toString().trim())
-                ed.putString("comp_call", compCall.text.toString().trim())
                 ed.apply()
             }
             .setNegativeButton("Close", null).show()

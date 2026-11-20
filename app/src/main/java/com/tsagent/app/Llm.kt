@@ -74,7 +74,23 @@ object Llm {
     fun quotaLike(e: Exception): Boolean =
         Regex("429|401|402|403|quota|rate|limit|exhaust|insufficient|billing|credit", RegexOption.IGNORE_CASE).containsMatchIn(e.message ?: "")
 
+    private val answerCache = LinkedHashMap<String, Pair<Long, String>>()
+
     fun complete(ctx: Context, system: String, prompt: String, maxTokens: Int, search: Boolean): String {
+        // The same question asked again within 10 minutes is answered from memory: no extra AI call.
+        val cacheKey = (system + "\u0001" + prompt + "\u0001" + maxTokens + search).hashCode().toString()
+        if (!search) synchronized(answerCache) {
+            answerCache[cacheKey]?.let { (at, text) -> if (System.currentTimeMillis() - at < 600_000L) return text }
+        }
+        val answer = completeNow(ctx, system, prompt, maxTokens, search)
+        if (!search && answer.isNotBlank()) synchronized(answerCache) {
+            answerCache[cacheKey] = System.currentTimeMillis() to answer
+            while (answerCache.size > 40) answerCache.remove(answerCache.keys.first())
+        }
+        return answer
+    }
+
+    private fun completeNow(ctx: Context, system: String, prompt: String, maxTokens: Int, search: Boolean): String {
         val first = provider(ctx)
         fun usable(x: String): Boolean =
             if (x == "cloud") Config.enabled() && key(ctx, "cloud").isNotEmpty()

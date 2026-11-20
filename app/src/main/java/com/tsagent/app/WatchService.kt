@@ -216,7 +216,7 @@ Rules:
         val said = ArrayList<String>()
         val am = getSystemService(AUDIO_SERVICE) as AudioManager
         while (alive) {
-            val every = prefs.getInt("watch_every", 30).coerceIn(15, 300)
+            val every = prefs.getInt("watch_every", 90).coerceIn(15, 300)
             sleepMs(every * 1000L + minOf(fails, 10) * 30_000L + minOf(calm, 6) * every * 500L)
             if (!alive) break
             val forced = forceNow
@@ -232,7 +232,7 @@ Rules:
             tick++
             val now = System.currentTimeMillis()
             calls.removeAll { now - it > 3_600_000L }
-            if (calls.size >= prefs.getInt("watch_max_hour", 120)) { note = "hourly limit reached, resting"; main.post { notifyNow() }; continue }
+            if (calls.size >= prefs.getInt("watch_max_hour", 15)) { note = "hourly limit reached, resting"; main.post { notifyNow() }; continue }
 
             var screenJpg: ByteArray? = null
             var screenText = ""
@@ -263,7 +263,7 @@ Rules:
             if (sS != null) screenSig = sS
             if (fS != null) frontSig = fS
             if (bS != null) backSig = bS
-            val heartbeat = now - lastCall > 300_000L || forced
+            val heartbeat = now - lastCall > 1_800_000L || forced
             if (changed || forced) calm = 0 else calm++
             if (!changed && !heartbeat) continue
             if (screenJpg == null && frontJpg == null && backJpg == null && screenText.isBlank()) continue
