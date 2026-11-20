@@ -106,7 +106,8 @@ object Llm {
                 catch (e: Exception) { last = e; if (!quotaLike(e)) break }
             }
         }
-        throw last ?: Exception("AI is not available right now")
+        val reason = (last?.message ?: "").take(120)
+        throw Exception("AI is not available right now (key, quota or internet). Phone commands still work. " + reason)
     }
 
     private fun completeWith(ctx: Context, p: String, system: String, prompt: String, maxTokens: Int, search: Boolean, keyOverride: String? = null): String {

@@ -55,6 +55,7 @@ Rules:
 - You may open login and sign-up screens and fill in the user's name and email from memory. Never type passwords, one-time codes or payment details and never solve captchas: stop with "done" or "need_permission"-style guidance and ask the user to do that step, then continue when they say so. Never create accounts in bulk.
 - To keep watching a feed, alternate "wait" and "scroll" (or use "autoplay").
 - Websites: {"action":"web_list","site":"<name>","path":"<folder>"}, {"action":"web_read","site":"<name>","path":"<file>"}, {"action":"web_write","site":"<name>","path":"<file>","content":"<whole file text>"}, {"action":"web_db","site":"<name>","name":"<short db name>"} (creates a database, a user and full rights), and {"action":"web_check","url":"<site address>"} to open the site and see if it answers. Write the whole file, not a part. Paths are relative to the document root. A task that names a site is already approved for that site: do the whole job (files, database, config, then web_check) without asking. Never delete files. Never write outside the site. If something fails, say what failed and stop.
+- If the user asked for a VOICE message, never send text in its place. If voice_send fails, stop and report it.
 - Voice message: {"action":"voice_send","app":"imo","text":"<what to say>"} makes a spoken voice with the user's ElevenLabs voice and opens the share screen of that app. Then pick the person and tap Send with normal steps. Use it when the user asks you to send a voice to someone.
 - Posts and long messages: write them fully, with proper sentences, paragraphs and emojis where natural, in the language the user asked for. Type the whole text in one type step. Do not cut it short.
 - Looking: {"action":"look_screen"} takes a picture of the phone screen and tells you what is on it, so use it when the text is not enough (images, videos, games, unclear buttons). {"action":"look_camera","side":"back"} or "front" looks through the camera, for questions like "what is in front of me". Use these only when needed, because each look costs one AI call.
@@ -210,7 +211,13 @@ Rules:
                 "voice_send" -> {
                     val names = mapOf("imo" to "com.imo.android.imoim", "telegram" to "org.telegram.messenger", "whatsapp" to "com.whatsapp", "messenger" to "com.facebook.orca")
                     val app = obj.optString("app").lowercase()
-                    history.add("result: " + Voice.shareToApp(act, obj.optString("text"), names[app] ?: app))
+                    val r = Voice.shareToApp(act, obj.optString("text"), names[app] ?: app)
+                    history.add("result: " + r)
+                    // A voice was asked for: if it fails, stop and say so. Never send plain text in its place.
+                    if (r.startsWith("Could not")) {
+                        post("The voice message failed, so I did not send text instead. " + r)
+                        return
+                    }
                 }
                 "look_screen" -> {
                     // Looks at the real screen picture, for buttons, images and video that the text alone does not show.

@@ -64,7 +64,17 @@ class MainActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("cfg", Context.MODE_PRIVATE) }
     private val buf = SpannableStringBuilder()
-    private val speakHandler: (String, String?) -> Unit = { t, l -> speak(t, l) }
+    private var lastSpoken = ""
+
+    /** Speaks each reply once. Replies from commands and from the agent both go through here. */
+    private fun speakOnce(text: String, lang: String? = null) {
+        val t = text.trim()
+        if (t.isEmpty() || t == lastSpoken || t.startsWith("•")) return
+        lastSpoken = t
+        speak(t.take(800), lang)
+    }
+
+    private val speakHandler: (String, String?) -> Unit = { t, l -> speakOnce(t, l) }
     private val t0 = System.currentTimeMillis()
     private val mono = Typeface.MONOSPACE
 
@@ -367,7 +377,9 @@ class MainActivity : Activity() {
         setState(0)
         refreshTasks()
         show("AGENT", "System ready. Tap the mic and speak. First open SETTINGS to log in, grant permissions and add your own API key.")
-        show("AGENT", "Updates and support: ${Config.TELEGRAM_URL}")
+        
+
+        if (!prefs.getBoolean("setup_seen", false)) { prefs.edit().putBoolean("setup_seen", true).apply(); showSetup() }
 
         Agent.onSpeak = speakHandler
         keepListening = prefs.getBoolean("auto_listen", true)
@@ -476,6 +488,16 @@ class MainActivity : Activity() {
         }
     }
 
+    /** First-time setup guide: what to add, where to get it. Shown once, and again by typing "setup". */
+    fun showSetup() {
+        val text = "1. Open SETTINGS.\n" +
+            "2. AI key: get a free Gemini key from aistudio.google.com/apikey and paste it in the Gemini key box, then press SAVE.\n" +
+            "3. Voice (optional): get an ElevenLabs key from elevenlabs.io, paste it in the ElevenLabs key box, then pick a voice ID.\n" +
+            "4. Allow Accessibility and Notifications when the app asks.\n" +
+            "5. Say hello to test."
+        AlertDialog.Builder(this).setTitle("Setup").setMessage(text).setPositiveButton("OK", null).show()
+    }
+
     /** Words that end the session at once. Extend this list if needed. */
     private val rudeWords = listOf("fuck", "shit", "bitch", "madarchod", "bokachoda", "হারামি", "শুয়োর")
 
@@ -507,7 +529,7 @@ class MainActivity : Activity() {
         if (text.isBlank()) return
         show("YOU", text)
         CommandRunner(this) { s ->
-            if (s.startsWith("•")) stage.caption = s.removePrefix("•").trim() else show("AGENT", s)
+            if (s.startsWith("•")) stage.caption = s.removePrefix("•").trim() else { show("AGENT", s); speakOnce(s) }
         }.run(text)
     }
 
@@ -537,9 +559,30 @@ class MainActivity : Activity() {
         t.setLanguage(loc)
         if (loc.language != "bn") return
         val voices = try { t.voices } catch (e: Exception) { null } ?: return
-        val pick = voices.firstOrNull { it.locale.language == "bn" && it.locale.country == "IN" && !it.isNetworkConnectionRequired }
-            ?: voices.firstOrNull { it.locale.language == "bn" && !it.isNetworkConnectionRequired }
-        if (pick != null) t.voice = pick
+        // The same voice every time: the chosen name is saved. Only Bangla offline voices are candidates.
+        val candidates = voices.filter { it.locale.language == "bn" && !it.isNetworkConnectionRequired }
+            .sortedWith(compareBy({ it.locale.country != "IN" }, { it.name }))
+        if (candidates.isEmpty()) return
+        val saved = prefs.getString("tts_voice_name", "") ?: ""
+        val pick = candidates.firstOrNull { it.name == saved } ?: candidates.first()
+        prefs.edit().putString("tts_voice_name", pick.name).apply()
+        t.voice = pick
+    }
+
+    /** "voice switch": moves to the next Bangla voice on the phone, then keeps it. */
+    fun switchVoice(): String {
+        val t = tts ?: return "Text-to-speech is not ready yet."
+        val voices = try { t.voices } catch (e: Exception) { null } ?: return "This phone does not list voices."
+        val candidates = voices.filter { it.locale.language == "bn" && !it.isNetworkConnectionRequired }
+            .sortedWith(compareBy({ it.locale.country != "IN" }, { it.name }))
+        if (candidates.isEmpty()) return "No Bangla offline voice found on this phone."
+        val cur = prefs.getString("tts_voice_name", "") ?: ""
+        val idx = candidates.indexOfFirst { it.name == cur }
+        val next = candidates[(idx + 1 + candidates.size) % candidates.size]
+        prefs.edit().putString("tts_voice_name", next.name).apply()
+        t.voice = next
+        t.speak("Hello, this is my new voice.", TextToSpeech.QUEUE_FLUSH, null, "vsw")
+        return "Voice changed to " + next.name + "."
     }
 
     private fun systemSpeak(text: String, lang: String?) {
@@ -642,6 +685,8 @@ class MainActivity : Activity() {
                     listening = false
                     main.post { recognizer?.destroy(); recognizer = null }
                     if (stage.state == 1) setState(0)
+                    // a result that came while the phone was still talking is its own echo: drop it
+                    if (stage.state == 2) { if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300); return }
                     val t = pickSpoken(r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty())
                     if (!t.isNullOrBlank() && isRude(t)) { main.post { shutDownForRude() }; return }
                     if (!t.isNullOrBlank()) submit(t)
@@ -652,7 +697,8 @@ class MainActivity : Activity() {
                     val p = b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                     if (!p.isNullOrBlank() && isRude(p)) { main.post { shutDownForRude() }; return }
                     // Only while the phone is talking, and only for real words: a running task is not cut off by noise.
-                    if (!p.isNullOrBlank() && p.trim().length >= 2 && stage.state == 2) interrupt()
+                    // while the phone is talking, only a real sentence counts (short echo of its own voice is ignored)
+                    if (!p.isNullOrBlank() && p.trim().length >= 4 && stage.state == 2) interrupt()
                 }
                 override fun onEvent(t: Int, b: Bundle?) {}
             })

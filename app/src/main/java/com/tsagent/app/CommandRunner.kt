@@ -183,9 +183,10 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
         when {
             // A task is running and the user asks something else: answer the question, the task keeps going.
             Agent.running && l in setOf("থামো", "থামাও", "বাদ দাও", "cancel", "বন্ধ করো") -> { Agent.cancelled = true; say("Stopped the task.") }
-            Agent.running && Regex("(?i)^(what |how |why |when |where |who |is |are |can )|^(কী|কি|কেন|কখন|কোথায়|কে|কত|কেমন)|\\?$").containsMatchIn(t) -> Thread {
+            Regex("(?i)^(what |how |why |when |where |who |is |are |can |do |does )|^(কী|কি|কেন|কখন|কোথায়|কে|কত|কেমন|তুমি কি|তুমি কী)|\\?$").containsMatchIn(t) &&
+                !Regex("(?i)(open|খোল|send|পাঠ|লেখ|post|call|কল |message|মেসেজ|voice|ভয়েস|play|চালাও|photo|ছবি|video|ভিডিও|look|দেখ)").containsMatchIn(t) -> Thread {
                 val answer = try {
-                    Llm.complete(act, "You are Miss Sara. Answer briefly in the same language as the question. A task is running in the background; do not say you control the phone right now.", t, 300, false)
+                    Llm.complete(act, "You are Miss Sara. Answer briefly and clearly in the same language as the question. Do not perform phone actions; just answer.", t, 300, false)
                 } catch (e: Exception) { "Could not answer right now." }
                 say(answer)
             }.start()
@@ -224,6 +225,25 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
                     cm.setPrimaryClip(android.content.ClipData.newPlainText("post", text))
                 } catch (e: Exception) { }
                 say(text + "\n\n(Copied. Paste it in the app you want.)")
+            }.start()
+            // Evidence: saved only on this phone. Nothing is sent anywhere.
+            l.startsWith("প্রমাণ সেভ ") || l.startsWith("evidence save ") -> {
+                val note = if (l.startsWith("evidence save ")) t.substring(14) else t.substring("প্রমাণ সেভ ".length)
+                say(Evidence.save(act, note))
+            }
+            l == "প্রমাণ দেখাও" || l == "evidence list" -> say(Evidence.list(act))
+            l == "setup" || l == "সেটআপ" -> (act as? MainActivity)?.showSetup()
+            l == "voice switch" || l == "ভয়েস বদলাও" -> say((act as? MainActivity)?.switchVoice() ?: "Voice change is not available here.")
+            // Your Telegram channel (t.me/ts_official_top): "telegram post <text>" / "টেলিগ্রাম পোস্ট <text>", or "telegram open".
+            l == "telegram open" || l == "টেলিগ্রাম খোলো" -> say(TelegramChannel.open(act))
+            l.startsWith("telegram post ") || l.startsWith("টেলিগ্রাম পোস্ট ") -> {
+                val body = if (l.startsWith("telegram post ")) t.substring(14) else t.substring("টেলিগ্রাম পোস্ট ".length)
+                say(TelegramChannel.post(act, body.trim()))
+            }
+            // Inbox: "inbox" (current app) or "tiktok inbox" / "টিকটক ইনবক্স" (opens the app first). No AI call.
+            l.contains("inbox") || l.contains("ইনবক্স") -> Thread {
+                val appPart = l.replace("inbox", "").replace("ইনবক্স", "").trim()
+                say(Inbox.open(act, appPart))
             }.start()
             // Fast WhatsApp: "wa 8801XXXXXXXXX : your message" opens and sends with no AI call.
             l.startsWith("wa ") && t.contains(":") -> {

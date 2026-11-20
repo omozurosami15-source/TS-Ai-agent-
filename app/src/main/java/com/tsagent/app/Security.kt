@@ -17,7 +17,16 @@ import android.service.notification.StatusBarNotification
 /** Security alerts: suspicious messages and newly installed apps. Nothing is removed; the user is told, with a sound. */
 object Security {
     private const val CHANNEL = "security_alert"
-    private val scamWords = listOf("otp", "pin", "verify your account", "account will be blocked", "click here", "prize", "lottery", "urgent", "bkash", "nagad", "free gift", "কোড দিন", "পিন দিন", "ওটিপি", "অ্যাকাউন্ট বন্ধ", "পুরস্কার", "লটারি")
+    /** Groups of warning words. A message matching a group gets a reason. Add words here as needed. */
+    private val groups: Map<String, List<String>> = mapOf(
+        "asks for a code or PIN" to listOf("otp", "one time password", "one-time password", "pin code", "pin number", "pin দিন", "পিন দিন", "কোড দিন", "ওটিপি", "পাসওয়ার্ড দিন", "password dao", "password পাঠাও", "verification code", "ভেরিফিকেশন কোড", "security code"),
+        "threatens your account" to listOf("account will be blocked", "account blocked", "account suspended", "will be suspended", "verify your account", "অ্যাকাউন্ট বন্ধ", "অ্যাকাউন্ট ব্লক", "অ্যাকাউন্ট স্থগিত", "অ্যাকাউন্ট যাচাই"),
+        "asks to send money" to listOf("send money", "send me money", "transfer money", "send payment", "টাকা পাঠাও", "টাকা পাঠান", "টাকা দাও", "টাকা লাগবে", "রিচার্জ করো", "ফি দিতে হবে", "fee to receive", "pay the fee", "bkash", "nagad", "rocket", "upay", "বিকাশ", "নগদ", "রকেট", "উপায়"),
+        "prize or lottery" to listOf("prize", "lottery", "winner", "you have won", "congratulations you", "free gift", "reward claim", "পুরস্কার", "লটারি", "জিতেছেন", "বিনামূল্যে উপহার"),
+        "urgent pressure" to listOf("urgent", "act now", "last chance", "expires today", "limited time", "জরুরি", "আজকের মধ্যে", "এখনই করুন"),
+        "job or easy money scam" to listOf("part time job", "work from home earn", "daily income guaranteed", "double your money", "invest and earn", "ঘরে বসে আয়", "দৈনিক আয় নিশ্চিত", "দ্বিগুণ টাকা")
+    )
+
     private val linkRx = Regex("(https?://|bit\\.ly/|tinyurl\\.com/|\\.apk\\b)", RegexOption.IGNORE_CASE)
     private val riskyPerms = listOf("android.permission.READ_SMS", "android.permission.RECEIVE_SMS", "android.permission.SEND_SMS",
         "android.permission.REQUEST_INSTALL_PACKAGES", "android.permission.BIND_DEVICE_ADMIN", "android.permission.SYSTEM_ALERT_WINDOW",
@@ -27,9 +36,12 @@ object Security {
     fun checkText(text: String): List<String> {
         val l = text.lowercase()
         val reasons = mutableListOf<String>()
-        val hits = scamWords.filter { l.contains(it) }
-        if (hits.isNotEmpty()) reasons.add("asks for codes or uses scam words: " + hits.take(3).joinToString(", "))
+        for ((name, words) in groups) {
+            val hits = words.filter { l.contains(it) }
+            if (hits.isNotEmpty()) reasons.add(name + " (" + hits.take(2).joinToString(", ") + ")")
+        }
         if (linkRx.containsMatchIn(text)) reasons.add("contains a link or APK file")
+        if (Regex("(?i)(৳|tk|bdt|taka|টাকা)\\s*[0-9]{2,}|[0-9]{2,}\\s*(৳|tk|bdt|taka|টাকা)").containsMatchIn(text)) reasons.add("mentions an amount of money")
         return reasons
     }
 
