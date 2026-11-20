@@ -55,8 +55,8 @@ object Llm {
     private fun http(method: String, url: String, headers: Map<String, String>, body: String? = null): Pair<Int, String> {
         val c = URL(url).openConnection() as HttpURLConnection
         c.requestMethod = method
-        c.connectTimeout = 20000
-        c.readTimeout = 90000
+        c.connectTimeout = 10000
+        c.readTimeout = 30000
         headers.forEach { (k, v) -> c.setRequestProperty(k, v) }
         if (body != null) { c.doOutput = true; c.outputStream.use { it.write(body.toByteArray()) } }
         val code = c.responseCode
@@ -72,7 +72,7 @@ object Llm {
 
     /** True when the error means this key is out of quota, rate limited or rejected: the next key is tried. */
     fun quotaLike(e: Exception): Boolean =
-        Regex("429|401|402|403|quota|rate|limit|exhaust|insufficient|billing|credit", RegexOption.IGNORE_CASE).containsMatchIn(e.message ?: "")
+        Regex("429|401|402|403|400|quota|rate|limit|exhaust|insufficient|billing|credit|not valid|invalid|API_KEY|UNAUTH|PERMISSION", RegexOption.IGNORE_CASE).containsMatchIn(e.message ?: "")
 
     private val answerCache = LinkedHashMap<String, Pair<Long, String>>()
 

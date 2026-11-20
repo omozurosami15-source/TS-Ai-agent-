@@ -377,7 +377,7 @@ class MainActivity : Activity() {
         main.postDelayed(newsTick, 900000L)
         tts = TextToSpeech(this) { st ->
             if (st == TextToSpeech.SUCCESS) tts?.let { t ->
-                t.setLanguage(Locale.forLanguageTag(voiceLang()))
+                applyVoice(t, voiceLang())
                 t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(id: String?) { runOnUiThread { setState(2) } }
                     override fun onDone(id: String?) { runOnUiThread { setState(0); afterSpeak() } }
@@ -497,6 +497,8 @@ class MainActivity : Activity() {
 
     /** Adds the typed key(s) to the saved list for this provider. The saved keys are kept; duplicates are dropped. */
     private fun mergedKeys(prefKey: String, typed: String): String {
+        // a new ElevenLabs key clears the one-hour pause, so the new key is tried at once
+        if (prefKey == "el_key" && typed.isNotBlank()) prefs.edit().remove("el_pause_until").apply()
         val split = { x: String -> x.split(Regex("[\\r\\n,]+")).map { it.trim() }.filter { it.isNotEmpty() } }
         return (split(prefs.getString(prefKey, "") ?: "") + split(typed)).distinct().joinToString(",")
     }
@@ -529,8 +531,19 @@ class MainActivity : Activity() {
         systemSpeak(text, lang)
     }
 
+    /** Picks the phone voice for the language. For Bangla it prefers Bangla (India), the voice you chose on the phone. */
+    private fun applyVoice(t: TextToSpeech, tag: String) {
+        val loc = Locale.forLanguageTag(tag)
+        t.setLanguage(loc)
+        if (loc.language != "bn") return
+        val voices = try { t.voices } catch (e: Exception) { null } ?: return
+        val pick = voices.firstOrNull { it.locale.language == "bn" && it.locale.country == "IN" && !it.isNetworkConnectionRequired }
+            ?: voices.firstOrNull { it.locale.language == "bn" && !it.isNetworkConnectionRequired }
+        if (pick != null) t.voice = pick
+    }
+
     private fun systemSpeak(text: String, lang: String?) {
-        tts?.setLanguage(Locale.forLanguageTag(if (!lang.isNullOrBlank()) lang else voiceLang()))
+        tts?.let { applyVoice(it, if (!lang.isNullOrBlank()) lang else voiceLang()) }
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ts")
     }
 
@@ -548,11 +561,25 @@ class MainActivity : Activity() {
     }
 
     /** Picks the best of the recognizer's guesses. If one contains the name, it wins; a lone "ছায়া" is read as the name. */
+    /** Common mis-hearings of the name and words, fixed on the phone with no AI call. Add more pairs here. */
+    private val voiceFix: List<Pair<Regex, String>> = listOf(
+        Regex("(^|\\s)ছায়া(?=$|\\s|[?!।.,])") to "$1সারা",
+        Regex("(^|\\s)শারা(?=$|\\s|[?!।.,])") to "$1সারা",
+        Regex("(^|\\s)সাড়া(?=$|\\s|[?!।.,])") to "$1সারা",
+        Regex("(^|\\s)সারাহ(?=$|\\s|[?!।.,])") to "$1সারা",
+        Regex("(?i)\\bsara\\b") to "Sara"
+    )
+
+    private fun fixVoice(s: String): String {
+        var out = s
+        for ((rx, rep) in voiceFix) out = rx.replace(out, rep)
+        return out
+    }
+
     private fun pickSpoken(alts: List<String>): String? {
-        val list = alts.filter { it.isNotBlank() }
+        val list = alts.filter { it.isNotBlank() }.map { fixVoice(it) }
         if (list.isEmpty()) return null
-        val best = list.firstOrNull { it.contains("সারা") || it.contains("sara", ignoreCase = true) } ?: list.first()
-        return best.replace(Regex("(^|\\s)ছায়া(?=$|\\s|[?!।.,])"), "$1সারা")
+        return list.firstOrNull { it.contains("সারা") || it.contains("Sara") } ?: list.first()
     }
 
     /** The user started talking while the phone was replying or working: stop the reply and the task, then listen. */

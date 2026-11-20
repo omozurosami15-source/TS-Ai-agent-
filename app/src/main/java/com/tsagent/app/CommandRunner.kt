@@ -225,6 +225,13 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
                 } catch (e: Exception) { }
                 say(text + "\n\n(Copied. Paste it in the app you want.)")
             }.start()
+            // Fast WhatsApp: "wa 8801XXXXXXXXX : your message" opens and sends with no AI call.
+            l.startsWith("wa ") && t.contains(":") -> {
+                val body = t.substring(3)
+                val num = body.substringBefore(":").trim()
+                val msg = body.substringAfter(":").trim()
+                say(FastSend.whatsapp(act, num, msg))
+            }
             // Daily job: 08:00 and 19:00 with the phone's own agent.
             l in setOf("daily on", "দৈনিক চালু", "রোজ চালু") -> say(DailyJobs.on(act))
             l in setOf("daily off", "দৈনিক বন্ধ", "রোজ বন্ধ") -> say(DailyJobs.off(act))
