@@ -18,7 +18,7 @@ object TermuxBridge {
         // date and time on the phone
         "date" to "date; sleep 5",
         // edit: joins the clips in ~/edit/in (sorted), makes a 9:16 1080x1920 video, adds ~/edit/sound.m4a if it exists, saves to ~/edit/out
-        "edit" to """cd ~/edit 2>/dev/null || { echo 'Make the folder ~/edit with an in/ folder first'; sleep 6; exit 1; }; mkdir -p out; ls in/*.mp4 2>/dev/null | sort | sed "s/.*/file '&'/" > list.txt; if [ ! -s list.txt ]; then echo 'No clips in ~/edit/in'; sleep 6; exit 1; fi; ffmpeg -y -f concat -safe 0 -i list.txt -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1" -c:v libx264 -preset veryfast -crf 23 -an v.mp4 && N=out/$(date +%Y%m%d_%H%M).mp4; if [ -f sound.m4a ]; then ffmpeg -y -i v.mp4 -stream_loop -1 -i sound.m4a -map 0:v -map 1:a -shortest -c:v copy -c:a aac "$N"; else mv v.mp4 "$N"; fi; echo "Saved $N"; sleep 8"""
+        "edit" to """cd ~/edit 2>/dev/null || { echo 'Make the folder ~/edit with an in/ folder first'; sleep 6; exit 1; }; mkdir -p out; ls in/*.mp4 2>/dev/null | sort | sed "s/.*/file '&'/" > list.txt; if [ ! -s list.txt ]; then echo 'No clips in ~/edit/in'; sleep 6; exit 1; fi; ffmpeg -y -f concat -safe 0 -i list.txt -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1" -c:v libx264 -preset veryfast -crf 23 -an v.mp4 && N=out/$(date +%Y%m%d_%H%M).mp4; if [ -f sound.m4a ]; then ffmpeg -y -i v.mp4 -stream_loop -1 -i sound.m4a -map 0:v -map 1:a -shortest -c:v copy -c:a aac "${'$'}N"; else mv v.mp4 "${'$'}N"; fi; echo "Saved ${'$'}N"; sleep 8"""
     )
 
     fun run(ctx: Context, job: String, text: String): String {
