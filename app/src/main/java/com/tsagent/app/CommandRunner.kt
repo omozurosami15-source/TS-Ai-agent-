@@ -233,7 +233,17 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
             }
             l == "প্রমাণ দেখাও" || l == "evidence list" -> say(Evidence.list(act))
             l == "setup" || l == "সেটআপ" -> (act as? MainActivity)?.showSetup()
+            l == "guide" || l == "গাইড" -> (act as? MainActivity)?.showGuide()
             l == "voice switch" || l == "ভয়েস বদলাও" -> say((act as? MainActivity)?.switchVoice() ?: "Voice change is not available here.")
+            // Look at the screen and explain what is shown, including errors and how to fix them. Spoken and shown.
+            l in setOf("look", "স্ক্রিন দেখো", "স্ক্রিনে কী", "এরর কী", "কী এরর", "স্ক্রিনে কী আছে", "error?", "what is on screen") -> Thread {
+                val jpg = AgentService.instance?.screenshotJpeg()
+                val answer = if (jpg == null) "I cannot see the screen. Turn on Accessibility and Android 11 or newer."
+                else try {
+                    Llm.completeVision(act, "You look at a phone or computer screen for the user. Say clearly, in the user's language (Bengali if they speak Bengali): what the screen shows, whether there is an error, the exact error line or message, what it means, and the exact next step to fix it. Keep it short and clear.", t, listOf("Picture: the screen." to jpg), 500)
+                } catch (e: Exception) { "Could not read the screen: " + e.message }
+                say(answer)
+            }.start()
             // Your Telegram channel (t.me/ts_official_top): "telegram post <text>" / "টেলিগ্রাম পোস্ট <text>", or "telegram open".
             l == "telegram open" || l == "টেলিগ্রাম খোলো" -> say(TelegramChannel.open(act))
             l.startsWith("telegram post ") || l.startsWith("টেলিগ্রাম পোস্ট ") -> {
