@@ -127,6 +127,11 @@ object LocalBrain {
         when {
             l in setOf("time", "what time is it", "what's the time", "current time", "কয়টা বাজে", "সময় কত", "এখন কয়টা বাজে") ->
                 return java.text.SimpleDateFormat("h:mm a", java.util.Locale.ENGLISH).format(java.util.Date())
+            l in setOf("day", "what day is it", "today's day", "আজ কি বার", "আজকে কি বার", "আজ কী বার", "কি বার", "কী বার") -> {
+                val bn = mapOf("Saturday" to "শনিবার", "Sunday" to "রবিবার", "Monday" to "সোমবার", "Tuesday" to "মঙ্গলবার", "Wednesday" to "বুধবার", "Thursday" to "বৃহস্পতিবার", "Friday" to "শুক্রবার")
+                val en = java.text.SimpleDateFormat("EEEE", java.util.Locale.ENGLISH).format(java.util.Date())
+                return "Today is " + en + " (" + (bn[en] ?: en) + ")."
+            }
             l in setOf("date", "today's date", "what is the date", "what's the date", "আজ কত তারিখ", "আজ কি তারিখ", "আজকের তারিখ") ->
                 return java.text.SimpleDateFormat("EEEE, d MMMM yyyy", java.util.Locale.ENGLISH).format(java.util.Date())
             l in setOf("battery", "battery level", "battery status", "ব্যাটারি কত", "ব্যাটারি কতো") -> {

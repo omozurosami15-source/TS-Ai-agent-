@@ -60,6 +60,7 @@ Rules:
 - Posts and long messages: write them fully, with proper sentences, paragraphs and emojis where natural, in the language the user asked for. Type the whole text in one type step. Do not cut it short.
 - Looking: {"action":"look_screen"} takes a picture of the phone screen and tells you what is on it, so use it when the text is not enough (images, videos, games, unclear buttons). {"action":"look_camera","side":"back"} or "front" looks through the camera, for questions like "what is in front of me". Use these only when needed, because each look costs one AI call.
 - Photo: {"action":"take_photo","side":"back"} takes a photo and saves it to Pictures/Miss Sara. Use "front" for the selfie camera. {"action":"record_video"} opens the camera in video mode; the user presses record and stop on that screen.
+- Code: {"action":"code_write","name":"my_script.py","content":"<whole file>"} saves a file to Downloads/MissSara (only .py or .js). {"action":"code_run","name":"my_script.py"} runs it in Termux after the user confirms on the phone. Add "background":true to keep a script running 24 hours in the background. Write complete, working code.
 - Termux (phone terminal): {"action":"termux","job":"animate","text":"TS SMM"} types the text out with an animation in Termux. {"action":"termux","job":"gitlog"} shows the last 10 commits of the Miss Sara project. {"action":"termux","job":"date"} shows the phone date. Only these jobs exist. Text is letters, digits and spaces, up to 40 characters.
 - To finish a step on the same screen in one reply, use {"action":"batch","steps":[{"action":"type","index":<n>,"text":"..."},{"action":"tap","index":<n>}]}. Allowed inside a batch: type, tap, scroll, back, home. Indexes come from the current screen only. Do not put open_app or confirm in a batch: open the app in its own step, and use confirm before sending anything important.
 - add_event, draft_sms and draft_email only open a pre-filled screen; the user taps the final button. Use the current time given in the prompt to work out dates like "tomorrow evening".
@@ -80,7 +81,7 @@ Rules:
         if (!Llm.configured(act)) { say("First add an AI key and choose a model in Settings"); return }
         val key = ""
         // A new request replaces the running one at once: no waiting. The old run notices its number is old and stops.
-        if (running) post("Switching to your new request.")
+        // no status line here: the new request simply takes over
         curGoal = goal
         prefs.edit().putString("agent_log", "GOAL: " + goal + "\n").apply()
         runApprovedSites = CpanelClient.sites(act).map { it.name }.filter { goal.contains(it, ignoreCase = true) }
@@ -252,6 +253,16 @@ Rules:
                     catch (e: Exception) { history.add("result: no camera app found") }
                 }
                 "termux" -> history.add("result: " + TermuxBridge.run(act, obj.optString("job"), obj.optString("text")))
+                "code_write" -> history.add("result: " + Code.write(act, obj.optString("name"), obj.optString("content")))
+                "code_run" -> {
+                    // Running code on the phone always asks the user first.
+                    val name = obj.optString("name")
+                    if (!Code.validName(name)) { history.add("result: that file name is not allowed"); continue }
+                    val msg = "Run " + name + " in Termux now?"
+                    if (svc == null || !confirm(svc, msg)) { post("Cancelled"); return }
+                    val bg = obj.optBoolean("background", false)
+                    history.add("result: " + TermuxBridge.run(act, if (bg) "runbg" else "runpy", name))
+                }
                 "web_db" -> history.add("result: " + CpanelClient.createDb(act, obj.optString("site"), obj.optString("name")))
                 "web_check" -> history.add("result: " + CpanelClient.check(obj.optString("url")))
                 "telegram" -> history.add("result: " + CommandRunner.sendTelegram(act, obj.optString("text")))
@@ -352,8 +363,9 @@ Rules:
         val system = SYSTEM + "\n\nWebsites you can edit (cPanel sites): " + CpanelClient.siteNames(act) + "." + (if (search) "\n\nWeb search is available: use it for current facts, then answer with the done action." else "") +
             "\n\nPersona (from user settings):\n" + soul.ifBlank { "(default)" } +
             "\n\nThings to remember about the user:\n" + memory.ifBlank { "(none)" } + companionBlock()
-        val recent = (prefs.getString("chat_log", "") ?: "").takeLast(2500)
-        val full = if (recent.isBlank()) system else system + "\n\nRecent conversation (continue it naturally, the user may refer to it):\n" + recent
+        val recent = (prefs.getString("chat_log", "") ?: "").takeLast(1200)
+        // The newest message is the only thing to answer. Earlier lines are background, never a new question.
+        val full = if (recent.isBlank()) system else system + "\n\nBackground only (older conversation, do NOT answer these again). The user's NEW message is the one in the goal; answer exactly that:\n" + recent
         // long posts need room: 400 tokens cut them short, so a normal step gets 1800
         val writing = Regex("(?i)post|caption|write|essay|article|message|ভয়েস|পোস্ট|লেখ").containsMatchIn(prompt.take(600))
         return Llm.complete(act, full, prompt, if (search) 900 else if (writing) 1800 else 400, search)

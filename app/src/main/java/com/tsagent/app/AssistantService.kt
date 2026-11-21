@@ -203,7 +203,9 @@ class AssistantService : Service() {
                     if (moved) { p.x = (ox + dx).toInt(); p.y = (oy + dy).toInt(); try { wm?.updateViewLayout(col, p) } catch (x: Exception) {} }
                 }
                 MotionEvent.ACTION_UP -> if (!moved) {
-                    if (keepListening || Agent.running) stopKeep()
+                    // a tap while working does NOT stop the task (it is often accidental); use ABORT to stop
+                    if (Agent.running) showCard("Working. Press ABORT to stop.")
+                    else if (keepListening) stopKeep()
                     else { keepListening = prefs.getBoolean("auto_listen", true); setExpanded(true); listen() }
                 } else savePosition()
             }

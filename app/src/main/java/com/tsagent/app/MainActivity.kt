@@ -65,11 +65,16 @@ class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("cfg", Context.MODE_PRIVATE) }
     private val buf = SpannableStringBuilder()
     private var lastSpoken = ""
+    private var lastSubmitted: String? = null
+    private var lastSubmittedAt = 0L
 
     /** Speaks each reply once. Replies from commands and from the agent both go through here. */
     private fun speakOnce(text: String, lang: String? = null) {
         val t = text.trim()
         if (t.isEmpty() || t == lastSpoken || t.startsWith("•")) return
+        // short status lines must not cut off a longer reply that is still being spoken
+        val status = listOf("Switching", "Error:", "Stopped", "Opening", "Posting", "Opened", "Saved", "Voice changed", "Evidence", "Could not")
+        if (status.any { t.startsWith(it) }) return
         lastSpoken = t
         speak(t.take(800), lang)
     }
@@ -488,6 +493,20 @@ class MainActivity : Activity() {
         }
     }
 
+    /** In-app guide: what Miss Sara can do and how to use it. Opened by typing "guide". */
+    fun showGuide() {
+        val text = "What Miss Sara does:\n" +
+            "- Talks and answers. Say a question, get an answer.\n" +
+            "- Phone tasks: open apps, time, date, battery, torch, volume, alarms.\n" +
+            "- Messages: \"wa <number> : text\" sends on WhatsApp. \"inbox\" opens the inbox of the app on screen.\n" +
+            "- Telegram: \"telegram post <text>\" posts to the channel. \"telegram open\" opens it.\n" +
+            "- Writing: \"write a post about <topic>\" writes it and copies it to the clipboard.\n" +
+            "- Prayer times and Ramadan: \"prayer Dhaka\", \"ramadan\".\n" +
+            "- Evidence: \"evidence save <note>\" keeps a note and screenshot on this phone only.\n\n" +
+            "Tips: keep the phone on and connected. Keep Accessibility and Notifications on. Use headphones to stop it hearing its own voice."
+        AlertDialog.Builder(this).setTitle("Guide").setMessage(text).setPositiveButton("OK", null).show()
+    }
+
     /** First-time setup guide: what to add, where to get it. Shown once, and again by typing "setup". */
     fun showSetup() {
         val text = "1. Open SETTINGS.\n" +
@@ -610,7 +629,8 @@ class MainActivity : Activity() {
         Regex("(^|\\s)শারা(?=$|\\s|[?!।.,])") to "$1সারা",
         Regex("(^|\\s)সাড়া(?=$|\\s|[?!।.,])") to "$1সারা",
         Regex("(^|\\s)সারাহ(?=$|\\s|[?!।.,])") to "$1সারা",
-        Regex("(?i)\\bsara\\b") to "Sara"
+        Regex("(?i)\\bsara\\b") to "Sara",
+        Regex("(টার্মার্কস|টারমাক্স|টার্মাক্স|টার্মাকস|টারমার্কস|টার্মাস|termax|termus|term ox|term max)") to "Termux"
     )
 
     private fun fixVoice(s: String): String {
@@ -689,7 +709,10 @@ class MainActivity : Activity() {
                     if (stage.state == 2) { if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300); return }
                     val t = pickSpoken(r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty())
                     if (!t.isNullOrBlank() && isRude(t)) { main.post { shutDownForRude() }; return }
-                    if (!t.isNullOrBlank()) submit(t)
+                    // the recognizer sometimes returns the same words again (echo or late result): skip a repeat within 6 seconds
+                    val now = System.currentTimeMillis()
+                    val repeat = t != null && t == lastSubmitted && now - lastSubmittedAt < 6000L
+                    if (!t.isNullOrBlank() && !repeat) { lastSubmitted = t; lastSubmittedAt = now; submit(t) }
                     if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300)
                 }
                 override fun onPartialResults(b: Bundle?) {
@@ -994,6 +1017,31 @@ class MainActivity : Activity() {
                 }
             }
         }
+        // Key status card: shows which keys are ready and where to get each one (like a clean key page)
+        val keyCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0xFF0B1A14.toInt()); setStroke(dp(1), Theme.G); cornerRadius = dp(12).toFloat()
+            }
+        }
+        val keyHeader = TextView(this).apply { text = "AI KEYS"; typeface = mono; textSize = 14f; setTextColor(Theme.G); letterSpacing = 0.12f; setPadding(0, 0, 0, dp(8)) }
+        keyCard.addView(keyHeader)
+        fun keyRow(title: String, pref: String, url: String) {
+            val has = (prefs.getString(pref, "") ?: "").isNotBlank()
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL; setPadding(0, dp(4), 0, dp(4)) }
+            val label = TextView(this).apply { text = title; typeface = mono; textSize = 13f; setTextColor(Theme.G); layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
+            val status = TextView(this).apply { text = if (has) "READY" else "ADD KEY"; typeface = mono; textSize = 12f; setTextColor(if (has) Theme.G else 0xFFFFB347.toInt()); setPadding(dp(6), 0, dp(6), 0) }
+            val get = android.widget.Button(this).apply {
+                text = "GET KEY"; textSize = 11f; setTextColor(Theme.G); background = null
+                setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+            }
+            row.addView(label); row.addView(status); row.addView(get)
+            keyCard.addView(row)
+        }
+        keyRow("AI (Gemini)", "key_gemini", "https://aistudio.google.com/apikey")
+        keyRow("Voice (ElevenLabs)", "el_key", "https://elevenlabs.io")
+        col.addView(keyCard)
         val keyGemini = field("Google Gemini key (optional)", "key_gemini", true)
         col.addView(keyAddButton("key_gemini", keyGemini, "GEMINI"))
         val keyGrok = field("xAI Grok key (optional)", "key_grok", true)
