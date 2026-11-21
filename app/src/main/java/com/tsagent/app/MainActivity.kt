@@ -65,6 +65,10 @@ class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("cfg", Context.MODE_PRIVATE) }
     private val buf = SpannableStringBuilder()
     private var lastSpoken = ""
+
+    /** Removes pet words such as "jaan" from replies, so they are neither shown nor spoken. */
+    fun cleanReply(text: String): String =
+        text.replace(Regex("(হ্যাঁ\\s*)?(জান|jaan|Jaan|JAAN)(?=[!,।.?\\s]|$)[!,।.?\\s]*"), "").replace(Regex("\\s{2,}"), " ").trim()
     private var lastSubmitted: String? = null
     private var lastSubmittedAt = 0L
 
@@ -76,7 +80,7 @@ class MainActivity : Activity() {
         val status = listOf("Switching", "Error:", "Stopped", "Opening", "Posting", "Opened", "Saved", "Voice changed", "Evidence", "Could not")
         if (status.any { t.startsWith(it) }) return
         lastSpoken = t
-        speak(t.take(800), lang)
+        speak(cleanReply(t), lang)
     }
 
     private val speakHandler: (String, String?) -> Unit = { t, l -> speakOnce(t, l) }
@@ -384,6 +388,10 @@ class MainActivity : Activity() {
         show("AGENT", "System ready. Tap the mic and speak. First open SETTINGS to log in, grant permissions and add your own API key.")
         
 
+        // Sara Watch is OFF by default. One-time reset for phones where it was switched on before.
+        if (!prefs.getBoolean("watch_default_v2", false)) {
+            prefs.edit().putBoolean("watch_on", false).putBoolean("watch_consent", false).putBoolean("watch_default_v2", true).apply()
+        }
         if (!prefs.getBoolean("setup_seen", false)) { prefs.edit().putBoolean("setup_seen", true).apply(); showSetup() }
 
         Agent.onSpeak = speakHandler
@@ -477,7 +485,8 @@ class MainActivity : Activity() {
         if (follow) transcriptScroll.post { transcriptScroll.fullScroll(View.FOCUS_DOWN) }
     }
 
-    private fun show(who: String, text: String) {
+    private fun show(who: String, raw: String) {
+        val text = if (who == "AGENT") cleanReply(raw) else raw
         main.removeCallbacks(typer)
         if (pending.isNotEmpty()) { buf.append(pending); pending = "" }
         val label = if (who == "YOU") "root@ts:~$ " else "[ts] "
@@ -606,6 +615,7 @@ class MainActivity : Activity() {
 
     private fun systemSpeak(text: String, lang: String?) {
         tts?.let { applyVoice(it, if (!lang.isNullOrBlank()) lang else voiceLang()) }
+        // one utterance, one voice: the whole reply in the same voice (no chunks, so the voice does not change mid-reply)
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ts")
     }
 
@@ -1029,15 +1039,49 @@ class MainActivity : Activity() {
         keyCard.addView(keyHeader)
         fun keyRow(title: String, pref: String, url: String) {
             val has = (prefs.getString(pref, "") ?: "").isNotBlank()
-            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL; setPadding(0, dp(4), 0, dp(4)) }
-            val label = TextView(this).apply { text = title; typeface = mono; textSize = 13f; setTextColor(Theme.G); layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
-            val status = TextView(this).apply { text = if (has) "READY" else "ADD KEY"; typeface = mono; textSize = 12f; setTextColor(if (has) Theme.G else 0xFFFFB347.toInt()); setPadding(dp(6), 0, dp(6), 0) }
+            val block = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(6), 0, dp(10)) }
+            val label = TextView(this).apply { text = title; typeface = mono; textSize = 14f; setTextColor(Theme.G) }
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL; setPadding(0, dp(4), 0, 0) }
+            val status = TextView(this).apply {
+                text = if (has) "READY" else "ADD KEY"; typeface = mono; textSize = 12f
+                setTextColor(if (has) Theme.G else 0xFFFFB347.toInt())
+                setPadding(0, 0, dp(12), 0)
+            }
             val get = android.widget.Button(this).apply {
-                text = "GET KEY"; textSize = 11f; setTextColor(Theme.G); background = null
+                text = "GET KEY"; textSize = 12f; isAllCaps = false; setTextColor(Theme.G)
+                background = android.graphics.drawable.GradientDrawable().apply { setStroke(dp(1), Theme.G); cornerRadius = dp(8).toFloat() }
+                minHeight = 0; minimumHeight = 0; setPadding(dp(14), dp(6), dp(14), dp(6))
                 setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
             }
-            row.addView(label); row.addView(status); row.addView(get)
-            keyCard.addView(row)
+            row.addView(status, LinearLayout.LayoutParams(-2, -2))
+            row.addView(get, LinearLayout.LayoutParams(-2, -2))
+            // the box to paste a key and keep it: typed keys are added to the saved list (old ones stay)
+            val box = android.widget.EditText(this).apply {
+                hint = "paste key here"; setTextColor(Theme.G); setHintTextColor(0xFF4A7A66.toInt()); textSize = 13f
+                typeface = mono; inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+                background = android.graphics.drawable.GradientDrawable().apply { setStroke(dp(1), Theme.G); cornerRadius = dp(8).toFloat() }
+                setPadding(dp(10), dp(8), dp(10), dp(8))
+            }
+            val save = android.widget.Button(this).apply {
+                text = "SAVE KEY"; textSize = 12f; isAllCaps = false; setTextColor(Theme.G)
+                background = android.graphics.drawable.GradientDrawable().apply { setStroke(dp(1), Theme.G); cornerRadius = dp(8).toFloat() }
+                minHeight = 0; minimumHeight = 0; setPadding(dp(14), dp(6), dp(14), dp(6))
+                setOnClickListener {
+                    val typed = box.text.toString().trim()
+                    if (typed.isBlank()) { show("AGENT", "Paste a key first."); return@setOnClickListener }
+                    prefs.edit().putString(pref, mergedKeys(pref, typed)).apply()
+                    box.setText("")
+                    status.text = "READY"; status.setTextColor(Theme.G)
+                    show("AGENT", "$title key saved.")
+                }
+            }
+            val boxRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL; setPadding(0, dp(6), 0, 0) }
+            boxRow.addView(box, LinearLayout.LayoutParams(0, -2, 1f))
+            boxRow.addView(save, LinearLayout.LayoutParams(-2, -2))
+            block.addView(label, LinearLayout.LayoutParams(-1, -2))
+            block.addView(row, LinearLayout.LayoutParams(-1, -2))
+            block.addView(boxRow, LinearLayout.LayoutParams(-1, -2))
+            keyCard.addView(block, LinearLayout.LayoutParams(-1, -2))
         }
         keyRow("AI (Gemini)", "key_gemini", "https://aistudio.google.com/apikey")
         keyRow("Voice (ElevenLabs)", "el_key", "https://elevenlabs.io")

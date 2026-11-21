@@ -57,16 +57,27 @@ object DailyJobs {
     }
 
     /** Runs the job now (called by the alarm), then sets the next one. */
+    /** Shows a short status line as a notification, so a daily run never fails silently. */
+    fun notify(ctx: Context, text: String) {
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            nm.createNotificationChannel(android.app.NotificationChannel("daily_job", "Daily job", android.app.NotificationManager.IMPORTANCE_DEFAULT))
+        }
+        val b = if (android.os.Build.VERSION.SDK_INT >= 26) android.app.Notification.Builder(ctx, "daily_job") else android.app.Notification.Builder(ctx)
+        b.setSmallIcon(android.R.drawable.ic_popup_sync).setContentTitle("Miss Sara daily job").setContentText(text)
+            .setStyle(android.app.Notification.BigTextStyle().bigText(text)).setAutoCancel(true)
+        nm.notify(("daily" + text).hashCode(), b.build())
+    }
+
     fun fire(ctx: Context, slot: Int) {
         if (!isOn(ctx)) return
         arm(ctx, slot, nextAt(times[slot]))
-        if (!Llm.configured(ctx)) return
-        // the phone's agent needs the Accessibility service; open the app so it comes back if it was closed
-        if (AgentService.instance == null) {
-            ctx.startActivity(Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }
+        if (!Llm.configured(ctx)) { notify(ctx, "Did not start: add your Gemini key in Settings (AI KEYS)."); return }
+        if (AgentService.instance == null) { notify(ctx, "Did not start: turn on Accessibility for Miss Sara, then run again."); return }
+        notify(ctx, "Started: ChatGPT first, then Kling, then YouTube.")
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        handler.postDelayed({ Agent(ctx) { _ -> }.start(GOAL) }, 3000)
+        // every step message from the agent is shown as a status line
+        handler.postDelayed({ Agent(ctx) { msg -> notify(ctx, msg) }.start(GOAL) }, 3000)
     }
 }
 
