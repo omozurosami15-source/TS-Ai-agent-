@@ -1,0 +1,59 @@
+{
+ "coupons": [
+  {
+   "h": "4790fe1d4f84f72c45b790debd36ca573c0c842f6f59ccb02ad049edf4098b01",
+   "plan": "owner",
+   "days": 0,
+   "id": "c001"
+  },
+  {
+   "h": "c810f1f696aaefd17cd86a6754da014061bd8fc7e96bb70a02cfe27bef31c6c1",
+   "plan": "p2",
+   "days": 30,
+   "id": "c002"
+  },
+  {
+   "h": "bd1ade6d93ba1fd33d9fe9a3de0a872fbfcab42edbd1c6124500b10e823b29ee",
+   "plan": "p2",
+   "days": 30,
+   "id": "c003"
+  },
+  {
+   "h": "fac7b2d9aed48abc0fb7370854eeed795b414be3b80fd3212f2ac2b6d19f3a57",
+   "plan": "p2",
+   "days": 30,
+   "id": "c004"
+  },
+  {
+   "h": "3f9ded38d8f835f425ac8d70cdd93cbe683b5033c42c02051223a7b168145670",
+   "plan": "p1",
+   "days": 30,
+   "id": "c005"
+  },
+  {
+   "h": "bdc2a659c9d54cfe83fb46bbb9f4396a877c4298e77db687f052ff7abc8bc0a4",
+   "plan": "p1",
+   "days": 30,
+   "id": "c006"
+  },
+  {
+   "h": "747888759ed749bc44c4c8b3be037858ab41f3fbaa35bbd4f0bb0eafd2ae7d75",
+   "plan": "p1",
+   "days": 30,
+   "id": "c007"
+  },
+  {
+   "h": "2a594322eb303352bea018bd0b8e744eda679b03344a80ea71b70744478e6ce4",
+   "plan": "p2",
+   "days": 365,
+   "id": "c008"
+  },
+  {
+   "h": "fc8cb01b340fefac5ca973d01d1448a7357d94d086689a4adf14fa81937954d7",
+   "plan": "p2",
+   "days": 365,
+   "id": "c009"
+  }
+ ],
+ "revoked": []
+}
