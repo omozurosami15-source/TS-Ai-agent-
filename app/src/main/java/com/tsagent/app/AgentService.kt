@@ -40,18 +40,9 @@ class AgentService : AccessibilityService() {
     override fun onInterrupt() {}
 
     /** Numbered list of what is on screen, for the AI to read. */
-<<<<<<< HEAD
     /** Package name of the app on screen now (null if unknown). Used to wait until a launched app is up. */
     fun currentPackage(): String? = rootInActiveWindow?.packageName?.toString()
 
-=======
-<<<<<<< HEAD
-    /** Package name of the app on screen now (null if unknown). Used to wait until a launched app is up. */
-    fun currentPackage(): String? = rootInActiveWindow?.packageName?.toString()
-
-=======
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     fun dumpScreen(): String {
         val root = rootInActiveWindow ?: return "(screen unavailable)"
         // While TS Agent itself is on screen, the agent must not tap or type into it or press Home/Back.

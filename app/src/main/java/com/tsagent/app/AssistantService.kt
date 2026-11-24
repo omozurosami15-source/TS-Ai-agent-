@@ -203,19 +203,9 @@ class AssistantService : Service() {
                     if (moved) { p.x = (ox + dx).toInt(); p.y = (oy + dy).toInt(); try { wm?.updateViewLayout(col, p) } catch (x: Exception) {} }
                 }
                 MotionEvent.ACTION_UP -> if (!moved) {
-<<<<<<< HEAD
                     // a tap while working does NOT stop the task (it is often accidental); use ABORT to stop
                     if (Agent.running) showCard("Working. Press ABORT to stop.")
                     else if (keepListening) stopKeep()
-=======
-<<<<<<< HEAD
-                    // a tap while working does NOT stop the task (it is often accidental); use ABORT to stop
-                    if (Agent.running) showCard("Working. Press ABORT to stop.")
-                    else if (keepListening) stopKeep()
-=======
-                    if (keepListening || Agent.running) stopKeep()
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
                     else { keepListening = prefs.getBoolean("auto_listen", true); setExpanded(true); listen() }
                 } else savePosition()
             }
@@ -342,20 +332,9 @@ class AssistantService : Service() {
                 override fun onError(e: Int) {
                     orb.state = 0
                     main.post { recognizer?.destroy(); recognizer = null }
-<<<<<<< HEAD
                     if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                         errStreak = (errStreak + 1).coerceAtMost(50)
                         main.postDelayed({ if (keepListening) listen() }, (500L + errStreak * 250L).coerceAtMost(3000L))
-=======
-<<<<<<< HEAD
-                    if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-                        errStreak = (errStreak + 1).coerceAtMost(50)
-                        main.postDelayed({ if (keepListening) listen() }, (500L + errStreak * 250L).coerceAtMost(3000L))
-=======
-                    if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS && ++errStreak <= 5) {
-                        main.postDelayed({ if (keepListening) listen() }, 400)
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
                     } else {
                         keepListening = false
                         showCard("Could not hear you, tap again")

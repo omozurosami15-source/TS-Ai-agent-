@@ -75,10 +75,6 @@ input:focus,textarea:focus{box-shadow:0 0 0 3px rgba(0,255,156,.15)}
 ::selection{background:rgba(0,255,156,.3);color:#fff}
 @media (max-width:899px){.btn,.chip{-webkit-tap-highlight-color:transparent}#right .card:hover{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 
 /* ===== MISS SARA premium multi-page layer ===== */
 :root{--gold:#e8c77b;--glass:rgba(5,20,16,.78);--softline:rgba(115,255,207,.18)}
@@ -149,31 +145,3 @@ input:focus,textarea:focus{box-shadow:0 0 0 3px rgba(0,255,156,.15)}
   .vision-result{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.voice-orb{animation:none}.premium-panel{animation:none}}
-<<<<<<< HEAD
-=======
-
-/* ---- plans poster layout: 5 columns on PC, 2 on mobile ---- */
-.pl-hero{text-align:center;padding:14px 8px 10px}
-.pl-brand{font:700 14px monospace;color:#d4ffe8;letter-spacing:.2em}
-.pl-name{font:800 42px monospace;color:#00ff9c;text-shadow:0 0 18px rgba(0,255,156,.5);letter-spacing:.06em;line-height:1}
-.pl-sub{font:13px monospace;color:#9ff5c9;margin-top:8px}
-.pl-perks{list-style:none;padding:0;margin:10px 0 0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font:12px monospace;color:#d4ffe8}
-.pl-perks li:before{content:"✔ ";color:#00ff9c}
-.pl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:6px}
-@media (min-width:900px){.pl-grid{grid-template-columns:repeat(5,1fr)}.pl-name{font-size:56px}}
-.pc{position:relative;background:linear-gradient(160deg,#06261a,#02100a);border:2px solid #00ff9c;border-radius:16px;padding:14px 10px 12px;text-align:center;box-shadow:0 0 14px rgba(0,255,156,.25)}
-.pc-open{border-color:#ffd166;box-shadow:0 0 16px rgba(255,209,102,.35)}
-.pc-no{position:absolute;top:8px;left:8px;width:24px;height:24px;border-radius:50%;background:#19d3c5;color:#02100a;font:700 13px monospace;display:flex;align-items:center;justify-content:center}
-.pc-ico{font-size:40px;height:56px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 10px rgba(0,255,156,.5))}
-.pc-name{font:700 14px monospace;color:#e8fff3;min-height:34px}
-.pc-tag{font:11px monospace;color:#9ff5c9;min-height:30px;margin-top:4px}
-.pc-price{font:800 20px monospace;color:#ffd700;margin:6px 0}
-.pc-btn{width:100%;padding:10px 6px;border:0;border-radius:10px;background:linear-gradient(90deg,#17e87a,#0bbf62);color:#02100a;font:700 13px monospace;cursor:pointer}
-.pc-open .pc-btn{background:linear-gradient(90deg,#ffd166,#f5a524)}
-.pl-all{margin:16px 6px;padding:18px;border:2px solid #00ff9c;border-radius:16px;text-align:center;background:linear-gradient(160deg,#0b2a1a,#02100a)}
-.pl-all-t{font:800 22px monospace;color:#ffd700}
-.pl-all-s{font:13px monospace;color:#e8fff3;margin-top:4px}
-.pl-upgrade{margin-top:12px;padding:12px 26px;border:0;border-radius:24px;background:linear-gradient(90deg,#ffd700,#f5a524);color:#1a1200;font:800 15px monospace;cursor:pointer}
-=======
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297

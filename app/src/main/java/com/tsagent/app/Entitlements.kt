@@ -27,78 +27,14 @@ object Entitlements {
         return if (plan.isNotEmpty() && (until == 0L || now() < until)) plan else ""
     }
 
-<<<<<<< HEAD
     fun isOwner(ctx: Context) = plan(ctx) == "owner" && OwnerAuth.unlocked(ctx)
     fun companion(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p1", "p2", "owner")
     fun premium(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p2", "owner")
-=======
-<<<<<<< HEAD
-    /** Plan codes redeemed on this device. Actual paid activation still requires a verified coupon/server mapping. */
-    fun activePlans(ctx: Context): Set<String> {
-        val p = prefs(ctx)
-        val until = p.getLong("plan_until", 0L)
-        val saved = p.getStringSet("active_plans", emptySet())?.toSet() ?: emptySet()
-        return saved.filterTo(mutableSetOf()) { id ->
-            if (id.startsWith("module:")) {
-                val moduleUntil = p.getLong("module_until_" + id.removePrefix("module:"), 0L)
-                moduleUntil == 0L || now() < moduleUntil
-            } else {
-                until == 0L || now() < until
-            }
-        }
-    }
-
-    private val moduleIds = listOf(
-        "neural", "voice", "memory", "soul", "vision", "web", "code", "files",
-        "tasks", "notes", "briefing", "translate", "research", "calendar",
-        "reminders", "security", "analytics"
-    )
-
-    private fun entitlementId(planId: String): String {
-        if (planId.startsWith("module:")) return planId
-        val n = planId.removePrefix("p").toIntOrNull()
-        return if (n != null && n in 1..17) "module:" + moduleIds[n - 1] else planId
-    }
-
-    fun isPlanActive(ctx: Context, planId: String): Boolean {
-        val active = activePlans(ctx)
-        return planId in active || entitlementId(planId) in active
-    }
-
-    fun selectPlan(ctx: Context, planId: String): Boolean {
-        if (!isPlanActive(ctx, planId)) return false
-        prefs(ctx).edit().putString("default_plan", planId).apply()
-        return true
-    }
-
-    fun isOwner(ctx: Context) = plan(ctx) == "owner" && OwnerAuth.unlocked(ctx)
-    fun companion(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "owner")
-    fun premium(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p2", "p3", "p4", "p5", "p6", "p7", "p8", "owner")
-=======
-    fun isOwner(ctx: Context) = plan(ctx) == "owner" && OwnerAuth.unlocked(ctx)
-    fun companion(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p1", "p2", "owner")
-    fun premium(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p2", "owner")
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 
     fun label(ctx: Context): String {
         val pl = plan(ctx)
         val until = prefs(ctx).getLong("plan_until", 0L)
-<<<<<<< HEAD
         val name = when (pl) { "p1" -> "PLAN 1"; "p2" -> "PLAN 2"; "owner" -> "OWNER"; else -> "FREE" }
-=======
-<<<<<<< HEAD
-        val name = when {
-            pl.startsWith("module:") -> pl.removePrefix("module:").uppercase(Locale.US)
-            pl == "p1" -> "PLAN 1"
-            pl == "p2" -> "PLAN 2"
-            pl == "owner" -> "OWNER"
-            else -> "FREE"
-        }
-=======
-        val name = when (pl) { "p1" -> "PLAN 1"; "p2" -> "PLAN 2"; "owner" -> "OWNER"; else -> "FREE" }
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         return if (pl.isEmpty() || pl == "owner" || until == 0L) name
         else name + " until " + SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(until))
     }
@@ -136,71 +72,15 @@ object Entitlements {
         val b = book(ctx)
         val c = b.coupons[sha256(code)] ?: return "That code is not valid."
         if (c.id in b.revoked) return "That code has been withdrawn."
-<<<<<<< HEAD
         prefs(ctx).edit().putString("plan", c.plan).putString("plan_code_id", c.id)
             .putLong("plan_until", if (c.days == 0) 0L else now() + c.days * 86_400_000L).apply()
         return "Activated: " + label(ctx)
-=======
-<<<<<<< HEAD
-        val p = prefs(ctx)
-        val active = p.getStringSet("active_plans", emptySet())?.toMutableSet() ?: mutableSetOf()
-        active.add(c.plan)
-        val editor = p.edit()
-            .putStringSet("active_plans", active)
-        if (c.plan.startsWith("module:")) {
-            val slug = c.plan.removePrefix("module:")
-            editor.putLong("module_until_" + slug, if (c.days == 0) 0L else now() + c.days * 86_400_000L)
-            editor.putString("module_code_id_" + slug, c.id)
-            editor.putString("default_plan", c.plan)
-        } else {
-            editor.putString("plan", c.plan).putString("default_plan", c.plan)
-                .putString("plan_code_id", c.id)
-                .putLong("plan_until", if (c.days == 0) 0L else now() + c.days * 86_400_000L)
-        }
-        editor.apply()
-        return "Activated: " + (if (c.plan.startsWith("module:")) c.plan.removePrefix("module:").uppercase(Locale.US) else label(ctx))
-=======
-        prefs(ctx).edit().putString("plan", c.plan).putString("plan_code_id", c.id)
-            .putLong("plan_until", if (c.days == 0) 0L else now() + c.days * 86_400_000L).apply()
-        return "Activated: " + label(ctx)
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     }
 
     /** Blocking. Removes the plan if the code it came from was withdrawn in docs/coupons.json. */
     fun syncRevocations(ctx: Context) {
-<<<<<<< HEAD
         val id = prefs(ctx).getString("plan_code_id", null) ?: return
         val remote = Remote.coupons()?.let { try { parse(it) } catch (e: Exception) { null } } ?: return
         if (id in remote.revoked) prefs(ctx).edit().remove("plan").remove("plan_until").remove("plan_code_id").apply()
-=======
-<<<<<<< HEAD
-        val p = prefs(ctx)
-        val remote = Remote.coupons()?.let { try { parse(it) } catch (e: Exception) { null } } ?: return
-        val editor = p.edit()
-        val active = p.getStringSet("active_plans", emptySet())?.toMutableSet() ?: mutableSetOf()
-        var changed = false
-        val legacyId = p.getString("plan_code_id", null)
-        if (legacyId != null && legacyId in remote.revoked) {
-            editor.remove("plan").remove("plan_until").remove("plan_code_id")
-            changed = true
-        }
-        for (module in active.filter { it.startsWith("module:") }) {
-            val slug = module.removePrefix("module:")
-            val key = "module_code_id_" + slug
-            val id = p.getString(key, null)
-            if (id != null && id in remote.revoked) {
-                active.remove(module)
-                editor.remove(key).remove("module_until_" + slug)
-                changed = true
-            }
-        }
-        if (changed) editor.putStringSet("active_plans", active).apply()
-=======
-        val id = prefs(ctx).getString("plan_code_id", null) ?: return
-        val remote = Remote.coupons()?.let { try { parse(it) } catch (e: Exception) { null } } ?: return
-        if (id in remote.revoked) prefs(ctx).edit().remove("plan").remove("plan_until").remove("plan_code_id").apply()
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     }
 }

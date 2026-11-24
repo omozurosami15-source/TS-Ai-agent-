@@ -64,18 +64,9 @@ const Plan = {
   isOwner: () => Plan.get() === 'owner' && Owner.unlocked(),
   companion: () => CFG.ALL_FREE || ['p1', 'p2', 'owner'].includes(Plan.get()),
   premium: () => CFG.ALL_FREE || ['p2', 'owner'].includes(Plan.get()),
-<<<<<<< HEAD
   // each of the 17 premium plans is unlocked separately by its own code (stored as {moduleId: untilTime})
   modules() { try { return JSON.parse(store.get('modules', '{}')) || {}; } catch (e) { return {}; } },
   hasModule(id) { if (CFG.ALL_FREE || Plan.get() === 'owner') return true; const u = Plan.modules()[id]; return u !== undefined && (u === 0 || Date.now() < u); },
-=======
-<<<<<<< HEAD
-  // each of the 17 premium plans is unlocked separately by its own code (stored as {moduleId: untilTime})
-  modules() { try { return JSON.parse(store.get('modules', '{}')) || {}; } catch (e) { return {}; } },
-  hasModule(id) { if (CFG.ALL_FREE || Plan.get() === 'owner') return true; const u = Plan.modules()[id]; return u !== undefined && (u === 0 || Date.now() < u); },
-=======
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
   label() {
     const p = Plan.get(), u = Number(store.get('plan_until', '0'));
     const n = { p1: 'PLAN 1', p2: 'PLAN 2', owner: 'OWNER' }[p] || 'FREE';
@@ -90,25 +81,13 @@ async function redeem(raw) {
   const c = (book.coupons || []).find(x => x.h === h);
   if (!c) return 'That code is not valid.';
   if ((book.revoked || []).includes(c.id)) return 'That code has been withdrawn.';
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
   if (String(c.plan).startsWith('module:')) {
     const mid = c.plan.slice(7), mod = PREMIUM_MODULES.find(x => x.id === mid);
     if (!mod) return 'That code is not valid.';
     const m = Plan.modules(); m[mid] = c.days === 0 ? 0 : Date.now() + c.days * 86400000;
     store.set('modules', JSON.stringify(m));
-<<<<<<< HEAD
     return 'Unlocked: ' + mod.n + (c.days === 0 ? '' : ' for ' + c.days + ' days');
   }
-=======
-    applyPlanTheme();
-    return 'Unlocked: ' + mod.n + (c.days === 0 ? '' : ' for ' + c.days + ' days');
-  }
-=======
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
   store.set('plan', c.plan); store.set('plan_code_id', c.id);
   store.set('plan_until', c.days === 0 ? 0 : Date.now() + c.days * 86400000);
   return 'Activated: ' + Plan.label();
@@ -211,11 +190,7 @@ const LLM = {
       return j.text || '';
     }
     if (p === 'anthropic') {
-<<<<<<< HEAD
       const body = { model, max_tokens: search ? 1800 : 1400, system, messages: [{ role: 'user', content: prompt }] };
-=======
-      const body = { model, max_tokens: search ? 900 : 700, system, messages: [{ role: 'user', content: prompt }] };
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
       if (search) body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }];
       r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('AI error ' + r.status + ': ' + (await r.text()).slice(0, 160));
@@ -233,10 +208,6 @@ const LLM = {
     j = await r.json(); const c = j.choices[0].message.content;
     return Array.isArray(c) ? c.map(x => x.text || '').join('') : String(c || '');
   },
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
   async analyzeImage(system, prompt, dataUrl) {
     const p = LLM.provider(), key = LLM.key(p), model = LLM.model(p);
     if (!LLM.configured()) throw new Error('Open SETTINGS and configure an AI provider, API key and model first.');
@@ -246,11 +217,7 @@ const LLM = {
     const mediaType = match[1].toLowerCase(), imageData = match[2];
     let r, j;
     if (p === 'anthropic') {
-<<<<<<< HEAD
       r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','content-type':'application/json'}, body:JSON.stringify({model,max_tokens:1800,system,messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image',source:{type:'base64',media_type:mediaType,data:imageData}}]}]}) });
-=======
-      r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','content-type':'application/json'}, body:JSON.stringify({model,max_tokens:1100,system,messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image',source:{type:'base64',media_type:mediaType,data:imageData}}]}]}) });
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
       if (!r.ok) throw new Error('Vision API error '+r.status+': '+(await r.text()).slice(0,180));
       j=await r.json(); return (j.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n');
     }
@@ -263,11 +230,6 @@ const LLM = {
     if(!r.ok) throw new Error('Vision API error '+r.status+': '+(await r.text()).slice(0,180));
     j=await r.json(); const c=j.choices?.[0]?.message?.content; return Array.isArray(c)?c.map(x=>x.text||'').join('\n'):String(c||'');
   },
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
   async models() {
     const p = LLM.provider(), key = LLM.key(p); if (!key) throw new Error('Enter the key for ' + p.toUpperCase() + ' first');
     let r, j;
@@ -438,15 +400,7 @@ async function speak(text, lang) {
   stopSpeak();
   if (Eleven.configured()) { try { const a = await Eleven.speak(text); a.onplay = () => setState(2); a.onended = () => { if (state === 2) setState(0); }; await a.play(); return; } catch (e) {} }
   if (!('speechSynthesis' in window)) return;
-<<<<<<< HEAD
   const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.rate = Math.max(0.75, Math.min(1.25, Number(store.get('voice_rate', '1')) || 1)); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
-=======
-<<<<<<< HEAD
-  const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.rate = Math.max(0.75, Math.min(1.25, Number(store.get('voice_rate', '1')) || 1)); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
-=======
-  const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 }
 function listen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -721,12 +675,7 @@ function boot() {
 }
 function tick() {
   const s = Math.floor((Date.now() - t0) / 1000), p = n => String(n).padStart(2, '0');
-<<<<<<< HEAD
   $('sys').textContent = 'UPTIME ' + p(s / 3600 | 0) + ':' + p(s / 60 % 60 | 0) + ':' + p(s % 60) + ' | VOICE:' + voiceLang() + ' | OWNER:' + (!Owner.isSet() ? '-' : Owner.unlocked() ? 'ON' : 'LOCKED') + ' | PLAN:' + (Plan.get() || 'free').toUpperCase() + ' | COINS:' + (store.get('coins_text') || '-');
-=======
-<<<<<<< HEAD
-  $('sys').textContent = ''
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 }
 /* ---------- premium multi-page navigation ---------- */
 const PREMIUM_MODULES = [
@@ -772,37 +721,10 @@ function setPremiumView(view){
   const mod=PREMIUM_MODULES.find(x=>x.id===view); if(mod){renderModuleDetail(mod);return;}
   pane.innerHTML=premiumShell('MODULE','Module unavailable','Choose a module from the navigation.','');
 }
-<<<<<<< HEAD
 function renderPlans(){
   const cards=PREMIUM_MODULES.map((m,i)=>`<button class="premium-card plan-card" data-module="${m.id}"><span class="picon">${m.i}</span><strong>PLAN ${String(i+1).padStart(2,'0')} · ${m.n}</strong><small>${m.d}</small><span class="tag">VIEW PLAN DETAILS ↗</span></button>`).join('');
   $('premiumView').innerHTML=premiumShell('PREMIUM COLLECTION','17 Dedicated Experience Plans','Each plan has its own feature page and visual identity. Open a plan to review its scope and purchase options.',`<div class="premium-toolbar"><span class="chip">17 SEPARATE PLAN PAGES</span><span class="chip">ACTIVE: ${Plan.label()}</span></div><div class="premium-grid">${cards}</div><div class="lock-note" style="margin-top:14px">Purchase and activation note: this v10 package currently validates FREE / PLAN 1 / PLAN 2 / OWNER coupon entitlements. These 17 plan pages are the catalogue and design layer; separate per-plan payment verification and server-side entitlement mapping must be added before any of the 17 can be sold as independently activated subscriptions.</div><div class="premium-actions"><button class="btn" data-action="buy">CONTACT TO PURCHASE</button><button class="btn ghost" data-action="settings">REDEEM EXISTING CODE</button></div>`);
   $('premiumView').querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const m=PREMIUM_MODULES.find(x=>x.id===b.dataset.module);if(m)renderModuleDetail(m);}));bindPremiumActions();
-=======
-const PLAN_CARD={
-  neural:{t:'Advanced AI Processing',p:149,e:'🧠'}, voice:{t:'Premium Voice Tools',p:99,e:'🎙️'}, memory:{t:'Unlimited Memory',p:129,e:'☁️'},
-  soul:{t:'Mind & Wellness',p:79,e:'🪷'}, vision:{t:'Image & Vision AI',p:99,e:'📷'}, web:{t:'Web Search & Facts',p:89,e:'🌐'},
-  code:{t:'Code & Developer Tools',p:149,e:'💻'}, files:{t:'Read Any File',p:119,e:'📄'}, tasks:{t:'Automate Your Tasks',p:99,e:'⚙️'},
-  notes:{t:'Organize Your Ideas',p:69,e:'📝'}, briefing:{t:'Get Daily Updates',p:59,e:'📅'}, translate:{t:'Multi-Language Support',p:79,e:'🔤'},
-  research:{t:'Deep Research Tools',p:129,e:'📚'}, calendar:{t:'Smart Calendar',p:69,e:'🗓️'}, reminders:{t:'Never Miss Again',p:49,e:'🔔'},
-  security:{t:'Keep Your Data Safe',p:99,e:'🛡️'}, analytics:{t:'Track & Analyze',p:149,e:'📊'}
-};
-function renderPlans(){
-  const cards=PREMIUM_MODULES.map((m,i)=>{
-    const c=PLAN_CARD[m.id]||{t:m.d,p:0,e:m.i}; const open=Plan.hasModule(m.id);
-    return `<div class="pc ${open?'pc-open':''}" data-module="${m.id}"><span class="pc-no">${i+1}</span>
-      <div class="pc-ico">${c.e}</div><div class="pc-name">${m.n}</div><div class="pc-tag">${c.t}</div>
-      <div class="pc-price">৳${c.p}</div>
-      <button class="pc-btn" data-module="${m.id}">${open?'OPEN PLAN':'🔒 Unlock Plan'}</button></div>`;}).join('');
-  $('premiumView').innerHTML=`<div class="pl-hero"><div class="pl-brand">TS-Agent</div><div class="pl-name">MISS SARA</div>
-    <div class="pl-sub">17 Premium Plans — Unlock Your Smart AI Experience</div>
-    <ul class="pl-perks"><li>More Power</li><li>More Features</li><li>Smarter Experience</li></ul></div>
-    <div class="pl-grid">${cards}</div>
-    <div class="pl-all"><div class="pl-all-t">Unlock All 17 Plans</div><div class="pl-all-s">Get the complete AI experience</div>
-    <button class="pl-upgrade" id="plUpgrade">Upgrade Now</button><div id="plMsg" class="mut"></div></div>`;
-  $('premiumView').querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const m=PREMIUM_MODULES.find(x=>x.id===b.dataset.module);if(m)renderModuleDetail(m);}));
-  const up=$('plUpgrade'); if(up) up.onclick=()=>{ $('plMsg').textContent='Purchase is not active yet. Enter a plan code on each plan page to unlock it.'; };
-  bindPremiumActions();
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 }
 function renderModuleDetail(m){
   const i=PREMIUM_MODULES.indexOf(m)+1, feats=m.f.map(x=>`<li>${x}</li>`).join('');
@@ -880,15 +802,6 @@ function initPremiumNavigation(){
 
 async function init() {
   startRain(); startStage(); boot(); initPremiumNavigation(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
-<<<<<<< HEAD
-=======
-=======
-  $('sys').textContent = 'UPTIME ' + p(s / 3600 | 0) + ':' + p(s / 60 % 60 | 0) + ':' + p(s % 60) + ' | VOICE:' + voiceLang() + ' | OWNER:' + (!Owner.isSet() ? '-' : Owner.unlocked() ? 'ON' : 'LOCKED') + ' | PLAN:' + (Plan.get() || 'free').toUpperCase() + ' | COINS:' + (store.get('coins_text') || '-');
-}
-async function init() {
-  startRain(); startStage(); boot(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
   $('lang').textContent = voiceLang().split('-')[0].toUpperCase(); $('lang').onclick = () => say('Voice language: ' + toggleLang());
   $('mic').onclick = listen; $('abort').onclick = abortAll; $('send').onclick = () => { const v = $('chat').value; $('chat').value = ''; submit(v); };
   $('chat').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('send').click(); });
@@ -900,10 +813,6 @@ async function init() {
 }
 if (HAS_DOM) window.addEventListener('DOMContentLoaded', init);
 if (typeof module !== 'undefined') module.exports = { parseCommand, packCompile, packCanonical, parseSlots, normCode, sha256hex, memLinks, store, Plan, Owner, redeem, CFG };
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 
 /* ---------- signal scan radar (home, like the Android app) ---------- */
 (function radar(){
@@ -923,56 +832,3 @@ if (typeof module !== 'undefined') module.exports = { parseCommand, packCompile,
   }
   draw();
 })();
-<<<<<<< HEAD
-=======
-
-
-/* ---------- plan home themes: each plan can change the home look (applied automatically when unlocked) ---------- */
-const PLAN_THEMES = {
-  neural:    {name:'Neural Core',    cy:'#00ffd0', vi:'#00b3ff', pk:'#b04cff', bg:'#02080a', bg2:'#042018', btn:'#00ffd0'},
-  voice:     {name:'Voice Studio',   cy:'#7dffb0', vi:'#00e5ff', pk:'#ff4fd8', bg:'#050508', bg2:'#101024', btn:'#7dffb0'},
-  memory:    {name:'Memory Vault',   cy:'#ffd166', vi:'#00e5c0', pk:'#ff8c42', bg:'#0a0804', bg2:'#241a08', btn:'#ffd166'},
-  soul:      {name:'Soul Studio',    cy:'#ff7ab6', vi:'#b388ff', pk:'#ffa6d4', bg:'#0a0208', bg2:'#22061a', btn:'#ff7ab6'},
-  vision:    {name:'Vision Lab',     cy:'#36f0ff', vi:'#4f8cff', pk:'#00ffb3', bg:'#020a10', bg2:'#071a2a', btn:'#36f0ff'},
-  web:       {name:'Web Intelligence', cy:'#5cffa8', vi:'#2de2a6', pk:'#00b38f', bg:'#02100b', bg2:'#06291c', btn:'#5cffa8'},
-  code:      {name:'Coding Studio',  cy:'#9dff5c', vi:'#5cff9d', pk:'#c6ff00', bg:'#06080a', bg2:'#101a10', btn:'#9dff5c'},
-  files:     {name:'File Reader',    cy:'#ffb347', vi:'#ffd27a', pk:'#ff7f50', bg:'#0a0704', bg2:'#241a0c', btn:'#ffb347'},
-  tasks:     {name:'Task Automation',cy:'#00ff9c', vi:'#00e5ff', pk:'#ffd166', bg:'#02080a', bg2:'#04201a', btn:'#00ff9c'},
-  notes:     {name:'Smart Notes',    cy:'#f5f5f5', vi:'#9ad0ff', pk:'#ffb3c6', bg:'#07090c', bg2:'#131a24', btn:'#f5f5f5'},
-  briefing:  {name:'Daily Briefing', cy:'#ffe066', vi:'#66d9ff', pk:'#ff9f1c', bg:'#0a0a02', bg2:'#24220a', btn:'#ffe066'},
-  translate: {name:'Translator',     cy:'#66ffe0', vi:'#a78bfa', pk:'#f472b6', bg:'#04080a', bg2:'#101a22', btn:'#66ffe0'},
-  research:  {name:'Research Desk',  cy:'#8ef0ff', vi:'#3b82f6', pk:'#22d3ee', bg:'#020a0e', bg2:'#071e28', btn:'#8ef0ff'},
-  calendar:  {name:'Calendar Hub',   cy:'#ff9f9f', vi:'#fca5a5', pk:'#f43f5e', bg:'#0a0404', bg2:'#241010', btn:'#ff9f9f'},
-  reminders: {name:'Reminder Center',cy:'#c4ff5c', vi:'#a3e635', pk:'#84cc16', bg:'#060a02', bg2:'#162410', btn:'#c4ff5c'},
-  security:  {name:'Security Center',cy:'#00ff9c', vi:'#34d399', pk:'#10b981', bg:'#01080a', bg2:'#042a1e', btn:'#00ff9c'},
-  analytics: {name:'Analytics',      cy:'#ffd700', vi:'#00ffd5', pk:'#ff4d6d', bg:'#0a0a04', bg2:'#22200a', btn:'#ffd700'}
-};
-/* the most advanced plan you own decides the home look; with no plan the default look stays */
-function applyPlanTheme(){
-  let chosen=null;
-  PREMIUM_MODULES.forEach(m=>{ if(Plan.hasModule(m.id)) chosen=m.id; });
-  const root=document.documentElement;
-  if(!chosen){ ['--cy','--vi','--pk','--glow'].forEach(v=>root.style.removeProperty(v)); document.body.removeAttribute('data-plan'); return; }
-  const t=PLAN_THEMES[chosen];
-  root.style.setProperty('--cy', t.cy); root.style.setProperty('--vi', t.vi); root.style.setProperty('--pk', t.pk);
-  document.body.setAttribute('data-plan', chosen);
-  document.body.style.background = 'radial-gradient(ellipse at top,' + t.bg2 + ', ' + t.bg + ' 70%)';
-}
-
-/* ---------- bottom bar: HOME, MEMORY, mic, TASKS, MORE (all features in MORE) ---------- */
-function bottomBarInit(){
-  applyPlanTheme();
-  const sheet=document.getElementById('moreSheet');
-  document.querySelectorAll('#bottomBar [data-go], #moreSheet [data-go]').forEach(b=>b.addEventListener('click',()=>{
-    setPremiumView(b.dataset.go); if(sheet) sheet.hidden=true;
-  }));
-  const more=document.getElementById('bbMore'); if(more&&sheet) more.addEventListener('click',()=>{ sheet.hidden=false; });
-  const close=document.getElementById('msClose'); if(close&&sheet) close.addEventListener('click',()=>{ sheet.hidden=true; });
-  if(sheet) sheet.addEventListener('click',e=>{ if(e.target===sheet) sheet.hidden=true; });
-  const mic=document.getElementById('bbMic'), realMic=document.getElementById('mic');
-  if(mic&&realMic) mic.addEventListener('click',()=>realMic.click());
-}
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bottomBarInit); else bottomBarInit();
-=======
->>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
->>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
