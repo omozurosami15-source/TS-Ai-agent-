@@ -19,7 +19,7 @@ function token_user(): array {
 }
 function status(array $u): array {
     $p = effective_plan($u); $c = coin_state($u, $p);
-    return ['plan' => $p['name'], 'coins_cap' => $c['cap'], 'coins_left' => $c['daily_left'], 'bonus' => $c['bonus'], 'max_tier' => (int)$p['max_tier'],
+    return ['plan' => $p['name'], 'plan_id' => (int)$p['id'], 'plan_expires' => $u['plan_expires'], 'coins_cap' => $c['cap'], 'coins_left' => $c['daily_left'], 'bonus' => $c['bonus'], 'max_tier' => (int)$p['max_tier'],
         'cost' => [tier_cost(1), tier_cost(2), tier_cost(3)], 'expires' => $u['plan_expires'], 'notice' => setting('notice'), 'apk_version' => setting('apk_version'),
         'limit' => 0, 'used' => 0, 'free_mode' => false];
 }

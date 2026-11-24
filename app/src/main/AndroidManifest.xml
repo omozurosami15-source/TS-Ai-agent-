@@ -44,6 +44,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".TestActivity" android:exported="false" />
+        <activity android:name=".PlanDashboardActivity" android:exported="false" />
 
         <service
             android:name=".AgentService"

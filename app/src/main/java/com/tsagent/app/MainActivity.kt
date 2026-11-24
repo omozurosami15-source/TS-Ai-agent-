@@ -44,6 +44,8 @@ import java.util.Locale
 class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var stage: StageView
+    private lateinit var planArtwork: android.widget.ImageView
+    private lateinit var planThemeLabel: TextView
     private lateinit var mic: MicView
     private lateinit var transcript: TextView
     private lateinit var transcriptScroll: ScrollView
@@ -287,6 +289,14 @@ class MainActivity : Activity() {
         online = TextView(this).apply {
             textSize = 11f; typeface = mono; setPadding(dp(10), dp(4), dp(10), dp(4)); background = card(Theme.DIM)
         }
+        val plansTop = TextView(this).apply {
+            text = "✦ PLANS"; typeface = mono; textSize = 11f; setTextColor(Theme.C)
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            background = GradientDrawable().apply { setStroke(dp(1), Theme.C); cornerRadius = dp(8).toFloat() }
+            setOnClickListener { openPlanDashboard() }
+        }
+        pressFx(plansTop)
+        header.addView(plansTop, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
         val settingsTop = TextView(this).apply {
             text = "⚙ SETTINGS"; typeface = mono; textSize = 11f; setTextColor(Theme.A)
             setPadding(dp(8), dp(4), dp(8), dp(4))
@@ -309,7 +319,19 @@ class MainActivity : Activity() {
         }
         content.addView(transcriptScroll, LinearLayout.LayoutParams(-1, dp(120)).apply { topMargin = dp(8) })
 
-        // animated stage
+        // Main app stage: keep the original MISS SARA HUD and place the purchased plan artwork behind it.
+        val stageFrame = FrameLayout(this)
+        planArtwork = android.widget.ImageView(this).apply {
+            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+            alpha = 0f
+            contentDescription = "Purchased plan home design"
+        }
+        stageFrame.addView(planArtwork, FrameLayout.LayoutParams(-1, -1))
+        planThemeLabel = TextView(this).apply {
+            textSize = 9f; typeface = mono; setTextColor(Theme.C)
+            setPadding(dp(7), dp(4), dp(7), dp(4)); alpha = 0f
+            background = GradientDrawable().apply { setColor(0xAA00120C.toInt()); setStroke(dp(1), Theme.C); cornerRadius = dp(5).toFloat() }
+        }
         stage = StageView(this)
         stage.onNode = { i ->
             when (i) {
@@ -319,7 +341,10 @@ class MainActivity : Activity() {
                 else -> showSettings()
             }
         }
-        content.addView(stage, LinearLayout.LayoutParams(-1, 0, 1f))
+        stageFrame.addView(stage, FrameLayout.LayoutParams(-1, -1))
+        stageFrame.addView(planThemeLabel, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply { topMargin = dp(8); marginEnd = dp(8) })
+        content.addView(stageFrame, LinearLayout.LayoutParams(-1, 0, 1f))
+        applyPurchasedPlanHome()
 
         // tasks
         tasksText = TextView(this).apply {
@@ -436,6 +461,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         trace("onResume")
+        if (::planArtwork.isInitialized) applyPurchasedPlanHome()
         // The user came back to the app: a task still running in the background must not press Home or Back and kick them out.
         if (keepListening) listen()
         Security.showPending(this)?.let { show("SECURITY", it) }
@@ -1102,6 +1128,35 @@ class MainActivity : Activity() {
         if (v is ViewGroup) for (i in 0 until v.childCount) styleSettings(v.getChildAt(i))
     }
 
+    private fun openPlanDashboard() {
+        try { startActivity(Intent(this, PlanDashboardActivity::class.java)) }
+        catch (e: Exception) { show("PLANS", "Could not open Plan Dashboard: ${e.message}") }
+    }
+
+    /** Only a purchased/active plan changes the real app Home. Free users keep the original HUD. */
+    private fun applyPurchasedPlanHome() {
+        if (!::planArtwork.isInitialized) return
+        val number = Entitlements.dashboardPlanNumber(this)
+        if (number !in 1..17) {
+            planArtwork.setImageDrawable(null)
+            planArtwork.alpha = 0f
+            planThemeLabel.alpha = 0f
+            return
+        }
+        try {
+            assets.open("plan_designs/plan_${number.toString().padStart(2, '0')}.png").use { stream ->
+                planArtwork.setImageDrawable(android.graphics.drawable.Drawable.createFromStream(stream, null))
+            }
+            planArtwork.alpha = 0.34f
+            planThemeLabel.text = "ACTIVE PLAN ${number.toString().padStart(2, '0')}"
+            planThemeLabel.alpha = 1f
+        } catch (_: Exception) {
+            planArtwork.setImageDrawable(null)
+            planArtwork.alpha = 0f
+            planThemeLabel.alpha = 0f
+        }
+    }
+
     private fun showSettings() {
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), 0) }
         col.addView(TextView(this).apply {
@@ -1126,6 +1181,11 @@ class MainActivity : Activity() {
             col.addView(e)
             return e
         }
+        section("PLANS & HOME DESIGN")
+        col.addView(Button(this).apply {
+            typeface = mono; text = "OPEN 17 PLAN DASHBOARD"
+            setOnClickListener { openPlanDashboard() }
+        })
         section("AI")
         val hasKey = prefs.getString("apikey", null) != null
         val api = field(if (hasKey) "Your Anthropic API key (saved, only on this phone)" else "Your own Anthropic API key (stays only on this phone)", "apikey", true)

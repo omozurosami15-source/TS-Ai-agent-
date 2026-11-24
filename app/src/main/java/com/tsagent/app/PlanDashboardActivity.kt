@@ -59,7 +59,8 @@ class PlanDashboardActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        current = prefs.getInt("dashboard_plan", 1).coerceIn(1, 17)
+        current = Entitlements.dashboardPlanNumber(this).takeIf { it in 1..17 }
+            ?: prefs.getInt("dashboard_plan", 1).coerceIn(1, 17)
         window.statusBarColor = Color.BLACK
         window.navigationBarColor = Color.BLACK
         window.decorView.systemUiVisibility = 0
@@ -94,7 +95,7 @@ class PlanDashboardActivity : Activity() {
         top.addView(status, LinearLayout.LayoutParams(-2, dp(44)))
         base.addView(top)
 
-        val sub = text("SELECT AN ACTIVE PLAN  •  YOUR DEFAULT IS SAVED ON THIS DEVICE", 10f, 0xFF8CA7B7.toInt())
+        val sub = text("PURCHASED PLAN ARTWORK ALSO APPEARS ON THE MAIN APP HOME", 10f, 0xFF8CA7B7.toInt())
         sub.setPadding(dp(4), dp(8), dp(4), dp(8)); base.addView(sub)
 
         val selectorScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }

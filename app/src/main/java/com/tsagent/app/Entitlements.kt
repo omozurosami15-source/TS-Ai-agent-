@@ -35,11 +35,33 @@ object Entitlements {
      * Checks whether a dashboard plan is currently entitled.
      * Dashboard plan IDs are p1..p17; owner access includes every plan.
      */
+    private val modulePlanIds = mapOf(
+        "neural" to 1, "voice" to 2, "memory" to 3, "soul" to 4,
+        "vision" to 5, "web" to 6, "code" to 7, "files" to 8,
+        "tasks" to 9, "notes" to 10, "briefing" to 11, "translate" to 12,
+        "research" to 13, "calendar" to 14, "reminders" to 15,
+        "security" to 16, "analytics" to 17
+    )
+
+    /** Returns the purchased dashboard design number, or 0 for the original free Home screen. */
+    fun dashboardPlanNumber(ctx: Context): Int {
+        if (Config.ALL_FREE) return 0
+        val active = plan(ctx)
+        return when {
+            active == "owner" -> prefs(ctx).getInt("dashboard_plan", 1).coerceIn(1, 17)
+            active.matches(Regex("p(?:[1-9]|1[0-7])")) -> active.removePrefix("p").toIntOrNull() ?: 0
+            else -> modulePlanIds[active.removePrefix("module:")] ?: 0
+        }
+    }
+
+    /** A dashboard plan is unlocked by its matching legacy plan or module purchase code. */
     fun isPlanActive(ctx: Context, planId: String): Boolean {
         if (!planId.matches(Regex("p(?:[1-9]|1[0-7])"))) return false
         if (Config.ALL_FREE) return true
+        val number = planId.removePrefix("p").toIntOrNull() ?: return false
         val activePlan = plan(ctx)
-        return activePlan == "owner" || activePlan == planId
+        if (activePlan == "owner" || activePlan == planId) return true
+        return modulePlanIds[activePlan.removePrefix("module:")] == number
     }
 
     /**
@@ -52,7 +74,14 @@ object Entitlements {
     fun label(ctx: Context): String {
         val pl = plan(ctx)
         val until = prefs(ctx).getLong("plan_until", 0L)
-        val name = when (pl) { "p1" -> "PLAN 1"; "p2" -> "PLAN 2"; "owner" -> "OWNER"; else -> "FREE" }
+        val moduleName = modulePlanIds.entries.firstOrNull { it.value == dashboardPlanNumber(ctx) }?.key
+        val name = when {
+            pl == "p1" -> "PLAN 1"
+            pl == "p2" -> "PLAN 2"
+            pl == "owner" -> "OWNER"
+            pl.startsWith("module:") -> moduleName?.uppercase(Locale.US) ?: "MODULE"
+            else -> "FREE"
+        }
         return if (pl.isEmpty() || pl == "owner" || until == 0L) name
         else name + " until " + SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(until))
     }
