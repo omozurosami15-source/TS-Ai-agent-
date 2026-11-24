@@ -1,0 +1,5 @@
+*.pem
+*.jks
+local.properties
+build/
+.gradle/
