@@ -31,6 +31,24 @@ object Entitlements {
     fun companion(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p1", "p2", "owner")
     fun premium(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p2", "owner")
 
+    /**
+     * Checks whether a dashboard plan is currently entitled.
+     * Dashboard plan IDs are p1..p17; owner access includes every plan.
+     */
+    fun isPlanActive(ctx: Context, planId: String): Boolean {
+        if (!planId.matches(Regex("p(?:[1-9]|1[0-7])"))) return false
+        if (Config.ALL_FREE) return true
+        val activePlan = plan(ctx)
+        return activePlan == "owner" || activePlan == planId
+    }
+
+    /**
+     * Selects a dashboard plan only when the current entitlement grants access.
+     * Selection itself does not grant or modify paid access.
+     */
+    fun selectPlan(ctx: Context, planId: String): Boolean =
+        isPlanActive(ctx, planId)
+
     fun label(ctx: Context): String {
         val pl = plan(ctx)
         val until = prefs(ctx).getLong("plan_until", 0L)
