@@ -16,13 +16,28 @@ class Agent(private val act: Context, private val say: (String) -> Unit) {
     companion object {
         @Volatile var cancelled = false
         @Volatile var running = false
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         /** Each request gets a number. An older request stops by itself when a newer one has started. */
         @Volatile var generation = 0
         var onSpeak: ((String, String?) -> Unit)? = null
 
         private val SYSTEM = """
 You are TS Agent, a voice assistant that can also control an Android phone. Always reply in the same language the user speaks. If the user speaks or writes Bangla (Bengali script, or Bangla words in Latin letters such as ami, tumi, korte, bolo, kemon, ache), reply in Bangla in Bengali script and keep Bangla for the whole conversation, even when a few English words are mixed in. Reply in English only when the user speaks English. Give complete, useful answers. Be concise for simple voice replies, but provide the full requested explanation, list or instructions; never cut off a sentence or omit requested parts. The user speaks through a voice recognizer that often mishears words. Correct only obvious speech transcription mistakes using context. Never invent age, dates, event times, names or amounts. If a missing detail changes the result, ask one short clarifying question. Preserve exact spelling of names and event titles. Verify task success before saying it is done. Work fast: take the fewest steps, open apps directly, and never wait longer than needed. To send a message: type it in one step, then tap the button labelled Send (or the send icon) in the next step. A result of false means the screen changed: read the new screen and choose again.
+<<<<<<< HEAD
 If the user only chats or asks a question, answer directly with "done".
+=======
+If the user only chats or asks a question, answer directly with "done". For every multi-step request, silently classify the task (chat, research, writing, coding, device control, file work, scheduling or troubleshooting), form a short internal plan, execute the safest useful next step, inspect the result, and revise the plan when evidence changes. Never expose hidden reasoning; give concise progress and the final result. Prefer direct answers over unnecessary phone actions. Do not claim a tool, file, message, payment, upload or setting succeeded unless the action result verifies it. If a tool is unavailable, explain the exact limitation and offer the closest safe alternative. Preserve user constraints across steps. For coding, inspect existing project conventions, make minimal compatible changes, validate syntax/build where possible, and report tests that were not run. For research, distinguish verified facts from assumptions and state when current information is unavailable. For long writing, include every requested section and avoid truncation.
+=======
+        var onSpeak: ((String, String?) -> Unit)? = null
+
+        private val SYSTEM = """
+You are TS Agent, a voice assistant that can also control an Android phone. Always reply in the same language the user speaks. If the user speaks or writes Bangla (Bengali script, or Bangla words in Latin letters such as ami, tumi, korte, bolo, kemon, ache), reply in Bangla in Bengali script and keep Bangla for the whole conversation, even when a few English words are mixed in. Reply in English only when the user speaks English. Keep replies short and natural, because they are spoken aloud. The user speaks through a voice recognizer that often mishears words. Silently fix obvious recognition mistakes (sounds-alike words, wrong script, a name that is close to a real app) using the context, and act on the most likely meaning; ask only when the meaning truly cannot be guessed. Work fast: take the fewest steps, open apps directly, and never wait longer than needed. To send a message: type it in one step, then tap the button labelled Send (or the send icon) in the next step. A result of false means the screen changed: read the new screen and choose again.
+If the user only chats or asks a question, answer directly with "done".
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 For phone tasks, look at the screen and choose ONE action at a time.
 Reply with ONLY one JSON object, no other text. Actions:
 {"action":"open_app","name":"<app name>"}
@@ -48,12 +63,24 @@ Rules:
 - Never type passwords or payment details. If login or captcha blocks you, use "done" and explain.
 - If a step needs a permission you do not have (the screen says accessibility is off, or the gallery or microphone is not allowed), use "need_permission" instead of guessing.
 - Known apps: YouTube, Facebook, TikTok, Telegram, Instagram, X (Twitter), GitHub. To upload or share the latest video or photo, use share_media (far more reliable than browsing the gallery), then tap the Post, Upload or Share button, and use "confirm" before the final publish.
+<<<<<<< HEAD
 - Sending a message (any app): open the app, look for a search box or a Search/Find/Contacts icon, type the person's name and tap their name in the results (match the name exactly). Then tap the message box (often labelled "Message", "Type a message" or "Write"), type the text, and tap Send (paper plane icon or the word "Send"). For this, use batch to type and tap Send on the same screen. If there is no match for the name, say so and use done instead of guessing.
 - imo: the contacts or chat list is on the main screen; use the search icon and type the name. TikTok: messages are under the Inbox (envelope) tab, then search or pick the person. Facebook and Messenger: messages are under the Messenger or chat icon; use search at the top to find the person. Always check the screen labels, since layouts change.
+=======
+<<<<<<< HEAD
+- Sending a message (any app): open the app, look for a search box or a Search/Find/Contacts icon, type the person's name and tap their name in the results (match the name exactly). Then tap the message box (often labelled "Message", "Type a message" or "Write"), type the text, and tap Send (paper plane icon or the word "Send"). For this, use batch to type and tap Send on the same screen. If there is no match for the name, say so and use done instead of guessing.
+- imo: the contacts or chat list is on the main screen; use the search icon and type the name. TikTok: messages are under the Inbox (envelope) tab, then search or pick the person. Facebook and Messenger: messages are under the Messenger or chat icon; use search at the top to find the person. Always check the screen labels, since layouts change.
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 - Questions about the user (who they are, their projects, preferences): answer from the memory section below; if the answer is not there, say you do not know. When asked for one of the user's website links, reply with the exact URL from memory.
 - TS Agent is owned and developed by ${Config.OWNER_NAME}. If asked who owns or made it, answer with that name. If asked for the owner's contact number, give ${Config.OWNER_CONTACT}.
 - You may open login and sign-up screens and fill in the user's name and email from memory. Never type passwords, one-time codes or payment details and never solve captchas: stop with "done" or "need_permission"-style guidance and ask the user to do that step, then continue when they say so. Never create accounts in bulk.
 - To keep watching a feed, alternate "wait" and "scroll" (or use "autoplay").
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 - Websites: {"action":"web_list","site":"<name>","path":"<folder>"}, {"action":"web_read","site":"<name>","path":"<file>"}, {"action":"web_write","site":"<name>","path":"<file>","content":"<whole file text>"}, {"action":"web_db","site":"<name>","name":"<short db name>"} (creates a database, a user and full rights), and {"action":"web_check","url":"<site address>"} to open the site and see if it answers. Write the whole file, not a part. Paths are relative to the document root. A task that names a site is already approved for that site: do the whole job (files, database, config, then web_check) without asking. Never delete files. Never write outside the site. If something fails, say what failed and stop.
 - If the user asked for a VOICE message, never send text in its place. If voice_send fails, stop and report it.
 - Voice message: {"action":"voice_send","app":"imo","text":"<what to say>"} makes a spoken voice with the user's ElevenLabs voice and opens the share screen of that app. Then pick the person and tap Send with normal steps. Use it when the user asks you to send a voice to someone.
@@ -63,6 +90,11 @@ Rules:
 - Code: {"action":"code_write","name":"my_script.py","content":"<whole file>"} saves a file to Downloads/MissSara (only .py or .js). {"action":"code_run","name":"my_script.py"} runs it in Termux after the user confirms on the phone. Add "background":true to keep a script running 24 hours in the background. Write complete, working code.
 - Termux (phone terminal): {"action":"termux","job":"animate","text":"TS SMM"} types the text out with an animation in Termux. {"action":"termux","job":"gitlog"} shows the last 10 commits of the Miss Sara project. {"action":"termux","job":"date"} shows the phone date. Only these jobs exist. Text is letters, digits and spaces, up to 40 characters.
 - To finish a step on the same screen in one reply, use {"action":"batch","steps":[{"action":"type","index":<n>,"text":"..."},{"action":"tap","index":<n>}]}. Allowed inside a batch: type, tap, scroll, back, home. Indexes come from the current screen only. Do not put open_app or confirm in a batch: open the app in its own step, and use confirm before sending anything important.
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 - add_event, draft_sms and draft_email only open a pre-filled screen; the user taps the final button. Use the current time given in the prompt to work out dates like "tomorrow evening".
 - If the same step fails twice, try another way. If stuck, use "done" and say why.
 """.trimIndent()
@@ -74,6 +106,10 @@ Rules:
     private fun post(s: String) = main.post { say(s) }
     private fun speak(s: String, lang: String? = null) = main.post { onSpeak?.invoke(s, lang) }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     /** Sites the user named in this task; they are approved for this run only. */
     @Volatile private var runApprovedSites: List<String> = emptyList()
 
@@ -87,6 +123,27 @@ Rules:
         runApprovedSites = CpanelClient.sites(act).map { it.name }.filter { goal.contains(it, ignoreCase = true) }
         CpanelClient.writesThisRun = 0
         val gen = ++generation
+<<<<<<< HEAD
+=======
+=======
+    fun start(goal: String) {
+        if (!Llm.configured(act)) { say("First add an AI key and choose a model in Settings"); return }
+        val key = ""
+        if (running) {
+            // A new request replaces the running task: stop the old one, then start this one.
+            cancelled = true
+            post("Switching to your new request.")
+            Thread {
+                var waited = 0
+                while (running && waited < 60) { Thread.sleep(50); waited++ }
+                if (!running) start(goal) else say("Could not switch. Press the mic to stop and try again.")
+            }.start()
+            return
+        }
+        curGoal = goal
+        prefs.edit().putString("agent_log", "GOAL: " + goal + "\n").apply()
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         running = true
         cancelled = false
         Thread {
@@ -94,13 +151,25 @@ Rules:
             try {
                 KeepAliveService.start(act)
                 kept = true
+<<<<<<< HEAD
                 loop(key, goal, gen)
+=======
+<<<<<<< HEAD
+                loop(key, goal, gen)
+=======
+                loop(key, goal)
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             }
             catch (e: Exception) {
                 val offline = e is java.net.UnknownHostException || e is java.net.SocketTimeoutException
                 post(if (offline) "No internet connection. Phone commands like open app still work." else "Error: ${e.message}")
                 Reporter.send("agent", "Error: " + e.message, goal)
             }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             finally {
                 if (gen == generation) {
                     running = false
@@ -112,18 +181,47 @@ Rules:
     }
 
     private fun loop(key: String, goal: String, gen: Int) {
+<<<<<<< HEAD
+=======
+=======
+            finally { running = false; AgentService.instance?.hud?.hide(); if (kept) KeepAliveService.stop(act) }
+        }.start()
+    }
+
+    private fun loop(key: String, goal: String) {
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         val history = mutableListOf<String>()
         val asked = mutableSetOf<String>()
         var lastScreen = ""
         AgentService.instance?.hud?.show("Miss Sara is starting...")
         val started = System.currentTimeMillis()
+<<<<<<< HEAD
         for (step in 1..30) {
             if (cancelled || gen != generation) { if (gen == generation) post("Stopped"); return }
             if (System.currentTimeMillis() - started > 300_000L) { post("Stopped: this took too long. Try a simpler request."); return }
+=======
+<<<<<<< HEAD
+        for (step in 1..40) {
+            if (cancelled || gen != generation) { if (gen == generation) post("Stopped"); return }
+            if (System.currentTimeMillis() - started > 360_000L) { post("Stopped: this took too long. Try a simpler request."); return }
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             val svc = AgentService.instance
             if (svc == null && step == 1) post("Accessibility is off, so I can only chat. Turn it on for phone control.")
             val screen = (svc?.dumpScreen() ?: "(accessibility is off: you cannot see or control the screen, only chat)").take(4000)
             val hist = history.takeLast(30).joinToString("\n").ifEmpty { "(none)" }
+<<<<<<< HEAD
+=======
+=======
+        for (step in 1..12) {
+            if (cancelled) { post("Stopped"); return }
+            if (System.currentTimeMillis() - started > 90_000L) { post("Stopped: this took too long. Try a simpler request."); return }
+            val svc = AgentService.instance
+            if (svc == null && step == 1) post("Accessibility is off, so I can only chat. Turn it on for phone control.")
+            val screen = (svc?.dumpScreen() ?: "(accessibility is off: you cannot see or control the screen, only chat)").take(4000)
+            val hist = history.takeLast(10).joinToString("\n").ifEmpty { "(none)" }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             val now = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", java.util.Locale.US).format(java.util.Date()) + " " + java.util.TimeZone.getDefault().id
             val changed = if (step == 1) "" else if (screen == lastScreen) "\n\nThe screen did NOT change after your last action: pick a different element or a different way." else "\n\nThe screen changed after your last action."
             lastScreen = screen
@@ -155,6 +253,10 @@ Rules:
                 "confirm" -> {
                     if (svc == null || !confirm(svc, obj.optString("message"))) { post("Cancelled"); return }
                 }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
                 "open_app" -> {
                     val res = CommandRunner.openApp(act, obj.optString("name"))
                     history.add("result: " + res)
@@ -170,11 +272,21 @@ Rules:
                         }
                     }
                 }
+<<<<<<< HEAD
+=======
+=======
+                "open_app" -> history.add("result: " + CommandRunner.openApp(act, obj.optString("name")))
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
                 "tap" -> history.add("result: " + (svc?.tapIndex(obj.optInt("index", -1)) ?: false))
                 "type" -> history.add("result: " + (svc?.typeIndex(obj.optInt("index", -1), obj.optString("text")) ?: false))
                 "scroll" -> svc?.scrollDown()
                 "back" -> svc?.back()
                 "home" -> svc?.home()
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
                 "batch" -> {
                     // Several steps on the SAME screen in one AI reply (for example type a message, then tap Send).
                     val steps = obj.optJSONArray("steps")
@@ -265,6 +377,11 @@ Rules:
                 }
                 "web_db" -> history.add("result: " + CpanelClient.createDb(act, obj.optString("site"), obj.optString("name")))
                 "web_check" -> history.add("result: " + CpanelClient.check(obj.optString("url")))
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
                 "telegram" -> history.add("result: " + CommandRunner.sendTelegram(act, obj.optString("text")))
                 "add_event" -> if (!Entitlements.premium(act)) history.add("result: paid feature (Plan 2). Tell the user.") else history.add("result: " + Actions.addEvent(act, obj.optString("title"), obj.optString("start"), obj.optInt("minutes", 60), obj.optString("notes")))
                 "set_alarm" -> if (!Entitlements.premium(act)) history.add("result: paid feature (Plan 2). Tell the user.") else history.add("result: " + Actions.setAlarm(act, obj.optInt("hour", -1), obj.optInt("minute", 0), obj.optString("label")))
@@ -280,7 +397,15 @@ Rules:
                 "quick_settings" -> history.add("result: " + Device.quickSettings())
                 "wait" -> {
                     val w = obj.optInt("seconds", 5).coerceIn(1, 60)
+<<<<<<< HEAD
                     for (k in 0 until w) { if (cancelled || gen != generation) break; Thread.sleep(1000) }
+=======
+<<<<<<< HEAD
+                    for (k in 0 until w) { if (cancelled || gen != generation) break; Thread.sleep(1000) }
+=======
+                    for (k in 0 until w) { if (cancelled) break; Thread.sleep(1000) }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
                     history.add("result: waited")
                 }
                 "share_media" -> history.add("result: " + Share.latest(act, obj.optString("app"), obj.optString("kind"), obj.optString("caption").ifBlank { null }))
@@ -300,7 +425,15 @@ Rules:
             }
             Thread.sleep(250)
         }
+<<<<<<< HEAD
         post("Stopped after 30 steps to stay safe. The task may need a smaller goal or another attempt.")
+=======
+<<<<<<< HEAD
+        post("Stopped after 40 steps to stay within the task limit. The task may need a smaller goal or another attempt.")
+=======
+        post("Stopped after 12 steps to stay fast. Try a simpler goal.")
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     }
 
     private fun companionBlock(): String = Persona.companionBlock(act)
@@ -352,14 +485,28 @@ Rules:
 
     /** Keeps the last few exchanges so the next question continues the same conversation. */
     private fun saveTurn(user: String, answer: String) {
+<<<<<<< HEAD
         val log = (prefs.getString("chat_log", "") ?: "") + "User: " + user.take(1200) + "\nAgent: " + answer.take(1800) + "\n"
         prefs.edit().putString("chat_log", log.takeLast(8000)).apply()
+=======
+<<<<<<< HEAD
+        val log = (prefs.getString("chat_log", "") ?: "") + "User: " + user.take(1200) + "\nAgent: " + answer.take(1800) + "\n"
+        prefs.edit().putString("chat_log", log.takeLast(8000)).apply()
+=======
+        val log = (prefs.getString("chat_log", "") ?: "") + "User: " + user.take(300) + "\nAgent: " + answer.take(400) + "\n"
+        prefs.edit().putString("chat_log", log.takeLast(3000)).apply()
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     }
 
     private fun callApi(@Suppress("UNUSED_PARAMETER") key: String, prompt: String): String {
         val soul = prefs.getString("soul", "") ?: ""
         val memory = if (OwnerAuth.unlocked(act)) (prefs.getString("memory", "") ?: "") else ""
         val search = prefs.getBoolean("search_on", false) && Entitlements.premium(act) && Llm.provider(act) == "anthropic"
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         val system = SYSTEM + "\n\nWebsites you can edit (cPanel sites): " + CpanelClient.siteNames(act) + "." + (if (search) "\n\nWeb search is available: use it for current facts, then answer with the done action." else "") +
             "\n\nPersona (from user settings):\n" + soul.ifBlank { "(default)" } +
             "\n\nThings to remember about the user:\n" + memory.ifBlank { "(none)" } + companionBlock()
@@ -367,7 +514,21 @@ Rules:
         // The newest message is the only thing to answer. Earlier lines are background, never a new question.
         val full = if (recent.isBlank()) system else system + "\n\nBackground only (older conversation, do NOT answer these again). The user's NEW message is the one in the goal; answer exactly that:\n" + recent
         // long posts need room: 400 tokens cut them short, so a normal step gets 1800
+<<<<<<< HEAD
         val writing = Regex("(?i)post|caption|write|essay|article|message|ভয়েস|পোস্ট|লেখ").containsMatchIn(prompt.take(600))
         return Llm.complete(act, full, prompt, if (search) 1800 else if (writing) 3000 else 1400, search)
+=======
+        val writing = Regex("(?i)post|caption|write|essay|article|message|ভয়েস|পোস্ট|লেখ|code|script|program|debug|explain|research|analy[sz]e|report|translate|অনুবাদ|বিশ্লেষণ|রিপোর্ট").containsMatchIn(prompt.take(900))
+        val budget = if (search) 2400 else if (writing) 3600 else 1800
+        return Llm.complete(act, full, prompt, budget, search)
+=======
+        val system = SYSTEM + (if (search) "\n\nWeb search is available: use it for current facts, then answer with the done action." else "") +
+            "\n\nPersona (from user settings):\n" + soul.ifBlank { "(default)" } +
+            "\n\nThings to remember about the user:\n" + memory.ifBlank { "(none)" } + companionBlock()
+        val recent = (prefs.getString("chat_log", "") ?: "").takeLast(2500)
+        val full = if (recent.isBlank()) system else system + "\n\nRecent conversation (continue it naturally, the user may refer to it):\n" + recent
+        return Llm.complete(act, full, prompt, if (search) 900 else 400, search)
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     }
 }

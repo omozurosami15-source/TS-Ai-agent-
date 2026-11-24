@@ -1,11 +1,40 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#020604">
+<<<<<<< HEAD
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><title>MISS SARA AI</title><link rel="stylesheet" href="app.css"></head>
+=======
+<<<<<<< HEAD
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><title>MISS SARA AI</title><link rel="stylesheet" href="app.css"><style id="bottomCss">
+#bottomBar{position:fixed;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;justify-content:space-around;background:rgba(2,10,6,.96);border-top:1px solid #0b7a5a;z-index:50;padding:0 8px}
+#bottomBar .bb-btn{background:none;border:0;color:#7dffc9;font:12px monospace;display:flex;flex-direction:column;align-items:center;gap:2px;width:60px}
+#bottomBar .bb-ic{font-size:20px}
+#bottomBar .bb-mic{width:58px;height:58px;border-radius:50%;border:2px solid #00ff9c;background:radial-gradient(circle,#0b5a40,#02100a);color:#00ff9c;font-size:24px;margin-top:-22px;box-shadow:0 0 18px rgba(0,255,156,.45)}
+#moreSheet{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:flex;align-items:flex-end}
+#moreSheet[hidden]{display:none}
+#moreSheet .ms-card{width:100%;background:#041a10;border-top:1px solid #00ff9c;border-radius:16px 16px 0 0;padding:18px;color:#d4ffe8}
+#moreSheet .ms-title{font:14px monospace;color:#00ff9c;letter-spacing:.15em;margin-bottom:12px}
+#moreSheet .ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#moreSheet .ms-grid button{padding:14px;border:1px solid #0b7a5a;background:#06261a;color:#d4ffe8;font:14px monospace;border-radius:10px}
+#moreSheet .ms-close{margin-top:14px;width:100%;padding:12px;background:none;border:1px solid #00ff9c;color:#00ff9c;font:14px monospace;border-radius:10px}
+body{padding-bottom:80px}
+#bottomBar .bb-btn{border-radius:14px;padding:6px 10px;transition:all .2s ease}
+#bottomBar .bb-btn .bb-ic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid #0b7a5a;background:#06261a;box-shadow:0 0 10px rgba(0,255,156,.25)}
+#bottomBar .bb-btn.active,#bottomBar .bb-btn:active{color:#00ff9c}
+#bottomBar .bb-btn.active .bb-ic{border-color:#00ff9c;box-shadow:0 0 16px rgba(0,255,156,.6)}
+#bottomBar .bb-btn span:last-child{font-size:11px;letter-spacing:.08em}
+#bottomBar{justify-content:space-evenly}
+</style>
+</head>
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 <body>
 <canvas id="rain"></canvas>
 <div id="app">
   <header><div style="display:flex;align-items:center;gap:10px"><img src="icon-192.png" width="34" height="34" alt="" style="border-radius:50%;border:1px solid #00ff9c"><div class="glitch" data-t="MISS SARA">MISS SARA</div></div><div id="status" class="chip">● READY</div></header>
   <div id="sys"></div>
+<<<<<<< HEAD
   <nav id="premiumNav" aria-label="MISS SARA modules">
+=======
+  <nav id="premiumNav" aria-label="MISS SARA modules" style="display:none">
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     <button class="navbtn active" data-view="home" title="Main dashboard">HOME</button>
     <button class="navbtn" data-view="chat" title="Talk with MISS SARA">CHAT</button>
     <button class="navbtn" data-view="memory" title="Saved memories and notes">MEMORY</button>
@@ -17,15 +46,58 @@
     <button class="navbtn plan-nav" data-view="plans" title="Browse all 17 plans">17 PLANS</button>
   </nav>
   <main id="homeMain">
+<<<<<<< HEAD
+=======
+=======
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><title>TS Agent</title><link rel="stylesheet" href="app.css"></head>
+<body>
+<canvas id="rain"></canvas>
+<div id="app">
+  <header><div style="display:flex;align-items:center;gap:10px"><img src="icon-192.png" width="34" height="34" alt="" style="border-radius:50%;border:1px solid #00ff9c"><div class="glitch" data-t="TS-AGENT">TS-AGENT</div></div><div id="status" class="chip">● READY</div></header>
+  <div id="sys"></div>
+  <main>
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     <section id="left"><div id="transcript" class="card"></div>
       <div id="chatrow" class="hide"><input id="chat" placeholder="$ type a command..." autocomplete="off"><button id="send" class="btn sm">EXEC</button></div></section>
     <section id="center"><canvas id="stage"></canvas>
       <div id="controls"><button id="abort" class="btn red sm">[ ABORT ]</button>
         <button id="mic" aria-label="Microphone"><svg viewBox="0 0 100 100" width="44" height="44"><rect x="41" y="22" width="18" height="34" rx="9" fill="#021008"/><path d="M30 46a20 20 0 0 0 40 0M50 66v14M40 80h20" stroke="#021008" stroke-width="5" fill="none" stroke-linecap="round"/></svg></button>
         <button id="lang" class="btn ghost sm" title="Switch voice language">EN</button></div></section>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
     <aside id="right"><div id="radar" class="card"><div class="mut" style="font-size:12px">SIGNAL SCAN</div><canvas id="radarc" width="220" height="150" style="width:100%;height:auto"></canvas></div><div id="news" class="card"></div><div id="tasks" class="card"></div></aside>
   </main>
   <section id="premiumView" class="premium-view hide" aria-live="polite"></section>
 </div>
 <div class="scan"></div><div id="boot"></div><div id="modal" class="hide"></div>
+<<<<<<< HEAD
 <script src="app.js"></script></body></html>
+=======
+<script src="app.js"></script><nav id="bottomBar" aria-label="Main">
+  <button class="bb-btn active" data-go="home"><span class="bb-ic">&#8962;</span><span>Home</span></button>
+  <button class="bb-btn" data-go="memory"><span class="bb-ic">&#9776;</span><span>Memory</span></button>
+  <button class="bb-btn" data-go="tasks"><span class="bb-ic">&#9745;</span><span>Tasks</span></button>
+  <button class="bb-btn" id="bbMore"><span class="bb-ic">&#8943;</span><span>More</span></button>
+</nav>
+<div id="moreSheet" hidden>
+  <div class="ms-card">
+    <div class="ms-title">ALL FEATURES</div>
+    <div class="ms-grid">
+      <button data-go="chat">Chat</button><button data-go="soul">Soul</button><button data-go="voice">Voice</button>
+      <button data-go="vision">Vision Lab</button><button data-go="control">Settings</button><button data-go="plans">17 Plans</button>
+    </div>
+    <button class="ms-close" id="msClose">CLOSE</button>
+  </div>
+</div>
+</body></html>
+=======
+    <aside id="right"><div id="news" class="card"></div><div id="tasks" class="card"></div></aside>
+  </main>
+</div>
+<div class="scan"></div><div id="boot"></div><div id="modal" class="hide"></div>
+<script src="app.js"></script></body></html>
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297

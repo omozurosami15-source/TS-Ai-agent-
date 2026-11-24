@@ -22,6 +22,10 @@
         <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
     </queries>
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
     <queries>
         <package android:name="com.termux" />
@@ -33,6 +37,12 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
 <application
+<<<<<<< HEAD
+=======
+=======
+    <application
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="TS Agent"
@@ -44,6 +54,13 @@
             </intent-filter>
         </activity>
         <activity android:name=".TestActivity" android:exported="false" />
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+        <activity android:name=".PlanDashboardActivity" android:exported="false" android:screenOrientation="unspecified" />
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         <service
             android:name=".AgentService"
             android:exported="true"
@@ -82,6 +99,10 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="user-enabled companion that looks at the screen and cameras and speaks, with a permanent notification" />
         </service>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             <service
             android:name=".ScamListener"
             android:exported="true"
@@ -99,4 +120,10 @@
         <receiver android:name=".AlarmRing" android:exported="false" />
         <receiver android:name=".DailyJobRing" android:exported="false" />
 </application>
+<<<<<<< HEAD
+=======
+=======
+    </application>
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 </manifest>

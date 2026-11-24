@@ -32,11 +32,22 @@ if sys.argv[1] == "revoke":
     save(book)
     sys.exit("revoked " + sys.argv[2])
 plan, days, count = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]) if len(sys.argv) > 3 else 1
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 MODULES = ["neural","voice","memory","soul","vision","web","code","files","tasks","notes","briefing","translate","research","calendar","reminders","security","analytics"]
 if plan.startswith("module:"):
     if plan[7:] not in MODULES: sys.exit("unknown module id, use one of: " + ", ".join(MODULES))
 elif plan not in ("p1", "p2", "owner"):
     sys.exit("plan must be p1, p2, owner or module:<id>")
+<<<<<<< HEAD
+=======
+=======
+if plan not in ("p1", "p2", "owner"):
+    sys.exit("plan must be p1, p2 or owner")
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 for _ in range(count):
     code = "".join(secrets.choice(ALPHA) for _ in range(16))
     cid = "c%03d" % (len(book["coupons"]) + 1)

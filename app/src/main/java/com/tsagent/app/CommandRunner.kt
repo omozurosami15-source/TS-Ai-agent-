@@ -181,6 +181,10 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
         val local = LocalBrain.handle(act, t)
         if (local != null) { say(local); Agent.onSpeak?.invoke(local.take(240), null); return }
         when {
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             // A task is running and the user asks something else: answer the question, the task keeps going.
             Agent.running && l in setOf("থামো", "থামাও", "বাদ দাও", "cancel", "বন্ধ করো") -> { Agent.cancelled = true; say("Stopped the task.") }
             Regex("(?i)^(what |how |why |when |where |who |is |are |can |do |does )|^(কী|কি|কেন|কখন|কোথায়|কে|কত|কেমন|তুমি কি|তুমি কী)|\\?$").containsMatchIn(t) &&
@@ -190,6 +194,11 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
                 } catch (e: Exception) { "Could not answer right now." }
                 say(answer)
             }.start()
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             l == "stop" -> { Agent.cancelled = true; SongPlayer.stop(); Autoplay.stop(); say("Stopping...") }
             l.startsWith("keyset ") -> {
                 prefs.edit().putString("apikey", t.substring(7).trim()).apply()
@@ -215,6 +224,10 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
             l == "back" -> withService { it.back(); say("Back") }
             l == "home" -> withService { it.home(); say("Home") }
             l == "scroll" -> withService { it.scrollDown(); say("Scroll") }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             // Writing only (no phone control): a post or caption is written well and copied to the clipboard.
             !Agent.running && Llm.configured(act) && Regex("(?i)^(write (a )?(post|caption)|post |caption |পোস্ট|ক্যাপশন)").containsMatchIn(t) -> Thread {
                 val text = try {
@@ -334,6 +347,11 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
                 val city = t.substringAfter(" ").trim()
                 say(Weather.report(city))
             }.start()
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
             l.startsWith("ai ") -> Agent(act, say).start(t.substring(3))
             Llm.configured(act) -> Agent(act, say).start(original)
             else -> say("Unknown command. Try: open youtube, scroll down, share latest video to youtube, set timer 5 minutes, run <routine>. For free-form tasks add an AI key in SETTINGS.")

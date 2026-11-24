@@ -26,8 +26,18 @@ object OwnerAuth {
 
     fun isSet(ctx: Context) = prefs(ctx).contains("owner_hash")
 
+<<<<<<< HEAD
     /** Locked by default. Unlocked only when a passphrase is set AND the owner logged in within the last 7 days. */
     fun unlocked(ctx: Context): Boolean = isSet(ctx) && System.currentTimeMillis() < prefs(ctx).getLong("owner_until", 0L)
+=======
+<<<<<<< HEAD
+    /** Locked by default. Unlocked only when a passphrase is set AND the owner logged in within the last 7 days. */
+    fun unlocked(ctx: Context): Boolean = isSet(ctx) && System.currentTimeMillis() < prefs(ctx).getLong("owner_until", 0L)
+=======
+    /** True when no passphrase was ever set (old behaviour), or the owner is currently unlocked. */
+    fun unlocked(ctx: Context): Boolean = !isSet(ctx) || System.currentTimeMillis() < prefs(ctx).getLong("owner_until", 0L)
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
 
     fun logout(ctx: Context) { prefs(ctx).edit().putLong("owner_until", 0L).apply() }
 

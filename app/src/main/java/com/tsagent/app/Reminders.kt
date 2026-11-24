@@ -67,7 +67,15 @@ object Reminders {
     fun message(ctx: Context, s: Slot): String {
         val p = prefs(ctx)
         val pet = if (p.getBoolean("comp_on", false) && Entitlements.companion(ctx) && OwnerAuth.unlocked(ctx))
+<<<<<<< HEAD
             if (p.getBoolean("ramadan_mode", false)) "" else p.getString("comp_call", "")?.trim().orEmpty().ifBlank { "" } else ""
+=======
+<<<<<<< HEAD
+            if (p.getBoolean("ramadan_mode", false)) "" else p.getString("comp_call", "")?.trim().orEmpty().ifBlank { "" } else ""
+=======
+            p.getString("comp_call", "")?.trim().orEmpty().ifBlank { "jaan" } else ""
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
+>>>>>>> d31f216a46405461342b68f7278a48ac4b80d297
         return if (pet.isNotEmpty()) s.text.replace("{call}", pet)
         else s.text.replace(", {call}", "").replace(" {call}", "").replace("{call}", "")
     }
