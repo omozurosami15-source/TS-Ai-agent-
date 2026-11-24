@@ -1,7 +1,10 @@
 package com.tsagent.app
 
+<<<<<<< HEAD
 import java.io.File
 
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
@@ -51,8 +54,13 @@ class MainActivity : Activity() {
     private var titleView: GlitchTitle? = null
     /** True while the user wants the app to keep listening; only the mic button turns it off. */
     private var keepListening = false
+<<<<<<< HEAD
     /** True while the recognizer is actually open, so two listeners never run at the same time. */
     private var listening = false
+=======
+    /** Errors in a row while listening; a few are retried, then listening stops with a message. */
+    private var errStreak = 0
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     private lateinit var sysLine: TextView
     private lateinit var tasksText: TextView
     private lateinit var newsText: TextView
@@ -64,6 +72,7 @@ class MainActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("cfg", Context.MODE_PRIVATE) }
     private val buf = SpannableStringBuilder()
+<<<<<<< HEAD
     private var lastSpoken = ""
     private var lastSpokenAt = 0L
 
@@ -89,6 +98,9 @@ class MainActivity : Activity() {
     }
 
     private val speakHandler: (String, String?) -> Unit = { t, l -> speakOnce(t, l) }
+=======
+    private val speakHandler: (String, String?) -> Unit = { t, l -> speak(t, l) }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     private val t0 = System.currentTimeMillis()
     private val mono = Typeface.MONOSPACE
 
@@ -293,6 +305,7 @@ class MainActivity : Activity() {
         }
         pressFx(settingsTop)
         header.addView(settingsTop, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
+<<<<<<< HEAD
         val plansTop = TextView(this).apply {
             text = "PLANS"; typeface = mono; textSize = 11f; setTextColor(Theme.G)
             setPadding(dp(8), dp(4), dp(8), dp(4))
@@ -301,6 +314,8 @@ class MainActivity : Activity() {
         }
         pressFx(plansTop)
         header.addView(plansTop, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         header.addView(online)
         content.addView(header)
         sysLine = TextView(this).apply { textSize = 11f; typeface = mono; setTextColor(Theme.DIM) }
@@ -370,7 +385,11 @@ class MainActivity : Activity() {
             setPadding(dp(14), dp(9), dp(14), dp(9)); setOnClickListener { stopAll() }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(12); marginStart = dp(12) })
         mic = MicView(this).apply {
+<<<<<<< HEAD
             setOnClickListener { if (keepListening) stopKeep() else { keepListening = true; listen() } }
+=======
+            setOnClickListener { if (keepListening || Agent.running) stopKeep() else { keepListening = prefs.getBoolean("auto_listen", true); listen() } }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
             setOnLongClickListener { show("AGENT", "Voice language: " + toggleVoiceLang()); true }
         }
         controls.addView(mic, LinearLayout.LayoutParams(dp(80), dp(80)))
@@ -399,6 +418,7 @@ class MainActivity : Activity() {
         setState(0)
         refreshTasks()
         show("AGENT", "System ready. Tap the mic and speak. First open SETTINGS to log in, grant permissions and add your own API key.")
+<<<<<<< HEAD
         
 
         // Sara Watch is OFF by default. One-time reset for phones where it was switched on before.
@@ -409,13 +429,22 @@ class MainActivity : Activity() {
 
         Agent.onSpeak = speakHandler
         keepListening = prefs.getBoolean("auto_listen", true)
+=======
+        show("AGENT", "Updates and support: ${Config.TELEGRAM_URL}")
+
+        Agent.onSpeak = speakHandler
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         loadAccount()
         checkRemote()
         refreshNews()
         main.postDelayed(newsTick, 900000L)
         tts = TextToSpeech(this) { st ->
             if (st == TextToSpeech.SUCCESS) tts?.let { t ->
+<<<<<<< HEAD
                 applyVoice(t, voiceLang())
+=======
+                t.setLanguage(Locale.forLanguageTag(voiceLang()))
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
                 t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(id: String?) { runOnUiThread { setState(2) } }
                     override fun onDone(id: String?) { runOnUiThread { setState(0); afterSpeak() } }
@@ -429,8 +458,12 @@ class MainActivity : Activity() {
         super.onResume()
         trace("onResume")
         // The user came back to the app: a task still running in the background must not press Home or Back and kick them out.
+<<<<<<< HEAD
         if (keepListening) listen()
         Security.showPending(this)?.let { show("SECURITY", it) }
+=======
+        if (Agent.running) { Agent.cancelled = true; show("AGENT", "Stopped the running task because you opened the app.") }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         if (prefs.getBoolean("acc_lost", false) && AgentService.instance == null)
             show("AGENT", "Accessibility was turned off by Android. Turn it on again: SETTINGS > ENABLE ACCESSIBILITY.")
         try { resumeSafe() } catch (e: Throwable) { showStartupError(e) }
@@ -448,8 +481,11 @@ class MainActivity : Activity() {
         super.onPause()
         trace("onPause")
         try { pauseSafe() } catch (e: Throwable) { showStartupError(e) }
+<<<<<<< HEAD
         listening = false
         main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     }
 
     private fun pauseSafe() {
@@ -498,8 +534,12 @@ class MainActivity : Activity() {
         if (follow) transcriptScroll.post { transcriptScroll.fullScroll(View.FOCUS_DOWN) }
     }
 
+<<<<<<< HEAD
     private fun show(who: String, raw: String) {
         val text = if (who == "AGENT") cleanReply(raw) else raw
+=======
+    private fun show(who: String, text: String) {
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         main.removeCallbacks(typer)
         if (pending.isNotEmpty()) { buf.append(pending); pending = "" }
         val label = if (who == "YOU") "root@ts:~$ " else "[ts] "
@@ -515,6 +555,7 @@ class MainActivity : Activity() {
         }
     }
 
+<<<<<<< HEAD
     /** In-app guide: what Miss Sara can do and how to use it. Opened by typing "guide". */
     fun showGuide() {
         val text = "What Miss Sara does:\n" +
@@ -566,11 +607,17 @@ class MainActivity : Activity() {
         return (split(prefs.getString(prefKey, "") ?: "") + split(typed)).distinct().joinToString(",")
     }
 
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     private fun submit(text: String) {
         if (text.isBlank()) return
         show("YOU", text)
         CommandRunner(this) { s ->
+<<<<<<< HEAD
             if (s.startsWith("•")) stage.caption = s.removePrefix("•").trim() else { show("AGENT", s); speakOnce(s) }
+=======
+            if (s.startsWith("•")) stage.caption = s.removePrefix("•").trim() else show("AGENT", s)
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         }.run(text)
     }
 
@@ -594,6 +641,7 @@ class MainActivity : Activity() {
         systemSpeak(text, lang)
     }
 
+<<<<<<< HEAD
     /** Picks the phone voice for the language. For Bangla it prefers Bangla (India), the voice you chose on the phone. */
     private fun applyVoice(t: TextToSpeech, tag: String) {
         val loc = Locale.forLanguageTag(tag)
@@ -629,6 +677,10 @@ class MainActivity : Activity() {
     private fun systemSpeak(text: String, lang: String?) {
         tts?.let { applyVoice(it, if (!lang.isNullOrBlank()) lang else voiceLang()) }
         // one utterance, one voice: the whole reply in the same voice (no chunks, so the voice does not change mid-reply)
+=======
+    private fun systemSpeak(text: String, lang: String?) {
+        tts?.setLanguage(Locale.forLanguageTag(if (!lang.isNullOrBlank()) lang else voiceLang()))
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ts")
     }
 
@@ -642,6 +694,7 @@ class MainActivity : Activity() {
     /** After a reply finishes, listen again so the conversation keeps going. */
     private fun afterSpeak() {
         if (!keepListening) return
+<<<<<<< HEAD
         main.postDelayed({ if (keepListening) listen() }, 300)
     }
 
@@ -673,27 +726,37 @@ class MainActivity : Activity() {
         Agent.cancelled = true
         tts?.stop(); Voice.stop()
         if (stage.state == 2) setState(1)
+=======
+        main.postDelayed({ if (keepListening && stage.state == 0) listen() }, 600)
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     }
 
     /** Only the user turns listening off. */
     private fun stopKeep() {
         keepListening = false
         Agent.cancelled = true
+<<<<<<< HEAD
         listening = false
         tts?.stop(); Voice.stop()
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
         setState(0)
         show("AGENT", "Stopped. Tap the mic to talk again.")
     }
 
     private fun listen() {
+<<<<<<< HEAD
         if (listening) return
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 2); return
         }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             show("AGENT", "Speech recognition was not found on this phone. Update the Google app."); return
         }
+<<<<<<< HEAD
         listening = true
         recognizer?.destroy()
         recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
@@ -703,10 +766,19 @@ class MainActivity : Activity() {
                     // The user started talking: the phone stops its own speech at once.
                     if (stage.state == 2) main.post { interrupt() }
                 }
+=======
+        tts?.stop(); Voice.stop()
+        recognizer?.destroy()
+        recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+            setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(p: Bundle?) { setState(1) }
+                override fun onBeginningOfSpeech() {}
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
                 override fun onRmsChanged(v: Float) {}
                 override fun onBufferReceived(b: ByteArray?) {}
                 override fun onEndOfSpeech() {}
                 override fun onError(e: Int) {
+<<<<<<< HEAD
                     listening = false
                     main.post { recognizer?.destroy(); recognizer = null }
                     if (stage.state == 1) setState(0)
@@ -746,17 +818,41 @@ class MainActivity : Activity() {
                     // while the phone is talking, only a real sentence counts (short echo of its own voice is ignored)
                     if (!p.isNullOrBlank() && p.trim().length >= 4 && stage.state == 2) interrupt()
                 }
+=======
+                    setState(0)
+                    main.post { recognizer?.destroy(); recognizer = null }
+                    if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS && ++errStreak <= 5) {
+                        main.postDelayed({ if (keepListening) listen() }, 400)
+                    } else {
+                        keepListening = false
+                        show("AGENT", "Could not hear you, tap again")
+                    }
+                }
+                override fun onResults(r: Bundle?) {
+                    setState(0)
+                    val t = r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                    if (t != null) submit(t)
+                }
+                override fun onPartialResults(b: Bundle?) {}
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
                 override fun onEvent(t: Int, b: Bundle?) {}
             })
             startListening(
                 Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     .putExtra(RecognizerIntent.EXTRA_LANGUAGE, voiceLang())
+<<<<<<< HEAD
                     .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                     // a short pause ends the sentence, so the answer comes quickly
                     .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
                     .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2200L)
                     .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 800L)
+=======
+                    // wait for a full 3 seconds of silence before deciding the sentence is finished
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L)
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
             )
         }
     }
@@ -835,6 +931,7 @@ class MainActivity : Activity() {
         }.start()
     }
 
+<<<<<<< HEAD
     /** The one sound used for videos. Uploading a new one replaces it. */
     private fun pickVideoSound() {
         startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*"), 78)
@@ -846,12 +943,15 @@ class MainActivity : Activity() {
         show("AGENT", "Video sound removed. No sound is used until you upload one.")
     }
 
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     private fun pickSong() {
         startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*"), 77)
     }
 
     override fun onActivityResult(req: Int, res: Int, data: Intent?) {
         super.onActivityResult(req, res, data)
+<<<<<<< HEAD
         if (req == 78 && res == RESULT_OK) {
             data?.data?.let { uri ->
                 try {
@@ -864,6 +964,8 @@ class MainActivity : Activity() {
                 }
             }
         }
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         if (req == 77 && res == RESULT_OK) {
             data?.data?.let { uri ->
                 try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: Exception) {}
@@ -1031,12 +1133,20 @@ class MainActivity : Activity() {
                 setOnClickListener {
                     val k = f.text.toString().trim()
                     if (k.isEmpty()) { show("AGENT", "Type one key in the box first."); return@setOnClickListener }
+<<<<<<< HEAD
                     val merged = mergedKeys(prefKey, k)
                     prefs.edit().putString(prefKey, merged).apply()
                     f.setText("")
                     val count = merged.split(",").size
                     text = "ADD $name KEY TO LIST (saved: $count)"
                     show("AGENT", "$name key added. Saved keys: $count. Add the next one.")
+=======
+                    val cur = (prefs.getString(prefKey, "") ?: "").split(Regex("[\\r\\n,]+")).map { it.trim() }.filter { it.isNotEmpty() }
+                    val list = (cur + k).distinct()
+                    prefs.edit().putString(prefKey, list.joinToString(",")).apply()
+                    f.setText("")
+                    show("AGENT", "$name key added. Saved keys: ${list.size}. Add the next one.")
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
                 }
             }
         }
@@ -1052,7 +1162,11 @@ class MainActivity : Activity() {
             val ed = prefs.edit()
             if (api.text.isNotBlank()) ed.putString("apikey", api.text.toString().trim())
             listOf("openai" to keyOpenai, "gemini" to keyGemini, "grok" to keyGrok, "custom" to keyCustom)
+<<<<<<< HEAD
                 .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", mergedKeys("key_$p", f.text.toString())) }
+=======
+                .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", f.text.toString().trim()) }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
             ed.putString("llm_base", baseCustom.text.toString().trim())
             ed.apply()
         }
@@ -1097,9 +1211,16 @@ class MainActivity : Activity() {
                 }.start()
             }
         })
+<<<<<<< HEAD
         val songBtn = Button(this).apply { typeface = mono; text = "PICK FAVORITE SONG FILE"; setOnClickListener { pickSong() } }
         col.addView(songBtn)
         if (!Entitlements.isOwner(this)) { songBtn.visibility = View.GONE }
+=======
+        val songLink = field("Favorite song link (optional)", "fav_song_link")
+        val songBtn = Button(this).apply { typeface = mono; text = "PICK FAVORITE SONG FILE"; setOnClickListener { pickSong() } }
+        col.addView(songBtn)
+        if (!Entitlements.isOwner(this)) { songLink.visibility = View.GONE; songBtn.visibility = View.GONE }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         section("VOICE")
         fun autoLabel() = "Keep listening after each reply: " + (if (prefs.getBoolean("auto_listen", true)) "ON" else "OFF")
         col.addView(Button(this).apply {
@@ -1111,8 +1232,11 @@ class MainActivity : Activity() {
         })
         val elKey = field(if (!prefs.getString("el_key", null).isNullOrBlank()) "ElevenLabs API key (saved, only on this phone)" else "ElevenLabs API key (optional, natural female voice)", "el_key", true)
         col.addView(keyAddButton("el_key", elKey, "ELEVENLABS"))
+<<<<<<< HEAD
         // Manual voice ID: works even when the voice list cannot be loaded (key without voice-list permission).
         val elVoiceId = field("ElevenLabs voice ID (paste it from ElevenLabs > Voices, a female voice)", "el_voice")
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         fun elLabel() = "ElevenLabs voice: " + (if (prefs.getBoolean("el_on", true)) "ON" else "OFF")
         col.addView(Button(this).apply {
             typeface = mono; text = elLabel()
@@ -1121,10 +1245,16 @@ class MainActivity : Activity() {
         col.addView(Button(this).apply {
             typeface = mono; text = "CHOOSE FEMALE VOICE" + (prefs.getString("el_voice_name", null)?.let { " ($it)" } ?: "")
             setOnClickListener {
+<<<<<<< HEAD
                 val typed = elKey.text.toString().trim()
                 if (typed.isNotBlank()) { prefs.edit().putString("el_key", mergedKeys("el_key", typed)).apply(); elKey.setText("") }
                 val key = prefs.getString("el_key", "") ?: ""
                 if (key.isBlank()) { show("AGENT", "Enter your ElevenLabs API key first"); return@setOnClickListener }
+=======
+                val key = elKey.text.toString().trim().ifBlank { prefs.getString("el_key", "") ?: "" }
+                if (key.isBlank()) { show("AGENT", "Enter your ElevenLabs API key first"); return@setOnClickListener }
+                prefs.edit().putString("el_key", key).apply()
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
                 show("AGENT", "Loading female voices...")
                 Thread {
                     val (voices, err) = Voice.femaleVoices(key)
@@ -1147,6 +1277,11 @@ class MainActivity : Activity() {
             typeface = mono; text = searchLabel()
             setOnClickListener { prefs.edit().putBoolean("search_on", !prefs.getBoolean("search_on", false)).apply(); text = searchLabel() }
         })
+<<<<<<< HEAD
+=======
+        val compName = field("Companion: her name (optional)", "comp_name")
+        val compCall = field("Companion: what she calls you (default: jaan)", "comp_call")
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         section("ACCOUNT")
         val email = field("Account email", "email")
         val pass = field("Account password", "", true)
@@ -1191,6 +1326,7 @@ class MainActivity : Activity() {
                 }
                 .setNegativeButton("CANCEL", null).show()
         }
+<<<<<<< HEAD
         b("VIDEO SOUND: upload a file (replaces the current one)") { pickVideoSound() }
         b("VIDEO SOUND: remove current") { removeVideoSound() }
         b("CPANEL SITES (paste one site per line)") {
@@ -1206,6 +1342,8 @@ class MainActivity : Activity() {
                 }
                 .setNegativeButton("CANCEL", null).show()
         }
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         b("LAST AGENT RUN (log)") { show("AGENT", prefs.getString("agent_log", "(no run yet)") ?: "(no run yet)") }
         b("LOG OUT OF WEBSITE (use the phone's own key)") {
             prefs.edit().remove("svtoken").apply()
@@ -1343,6 +1481,10 @@ class MainActivity : Activity() {
                 if (on && Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3)
             }
         })
+<<<<<<< HEAD
+=======
+        b("Reminder times and messages") { editNote("REMINDERS // one per line: HH:MM message. {call} = her pet name for you", "rem_lines", Reminders.DEFAULT_LINES) }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         b("News feeds") { editNote("NEWS.FEEDS // one https RSS link per line", "feeds", "") }
         b("Allow background running (battery)") { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
         b("Remaining permissions (mic, media)") {
@@ -1360,16 +1502,27 @@ class MainActivity : Activity() {
                 val ed = prefs.edit()
                 if (api.text.isNotBlank()) ed.putString("apikey", api.text.toString().trim())
                 listOf("openai" to keyOpenai, "gemini" to keyGemini, "grok" to keyGrok, "custom" to keyCustom)
+<<<<<<< HEAD
                     .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", mergedKeys("key_$p", f.text.toString())) }
+=======
+                    .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", f.text.toString().trim()) }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
                 ed.putString("llm_base", baseCustom.text.toString().trim())
                 ed.putString("token", tok.text.toString().trim())
                 ed.putString("chat", chat.text.toString().trim())
                 ed.putString("vlang", vlang.text.toString().trim())
+<<<<<<< HEAD
                 if (elKey.text.isNotBlank()) ed.putString("el_key", mergedKeys("el_key", elKey.text.toString()))
                 val vid = elVoiceId.text.toString().trim()
                 if (vid.isNotBlank() && vid != prefs.getString("el_voice", "")) {
                     ed.putString("el_voice", vid).putString("el_voice_name", "voice ID " + vid.take(6))
                 }
+=======
+                if (elKey.text.isNotBlank()) ed.putString("el_key", elKey.text.toString().trim())
+                if (Entitlements.isOwner(this)) ed.putString("fav_song_link", songLink.text.toString().trim())
+                ed.putString("comp_name", compName.text.toString().trim())
+                ed.putString("comp_call", compCall.text.toString().trim())
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
                 ed.apply()
             }
             .setNegativeButton("Close", null).show()

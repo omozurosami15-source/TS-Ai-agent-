@@ -54,6 +54,7 @@ object LocalBrain {
         }
     }
 
+<<<<<<< HEAD
     /** Short greetings and thanks: answered on the phone, so they never use up an AI call. Only exact short phrases match. */
     private val smallTalk: Map<String, String> = mapOf(
         "hi" to "Hi! How can I help you?",
@@ -93,11 +94,16 @@ object LocalBrain {
         return if (dir == android.media.AudioManager.ADJUST_RAISE) "Volume up" else "Volume down"
     }
 
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     private fun run(act: Context, raw: String): String? {
         val t = raw.trim().trimEnd('.', '!', '?')
         val l = t.lowercase()
         if (l.isEmpty()) return null
+<<<<<<< HEAD
         smallTalk[l]?.let { return it }
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         val svc = AgentService.instance
         fun launch(i: Intent) = act.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         fun view(url: String, msg: String): String { launch(Intent(Intent.ACTION_VIEW, Uri.parse(url))); return msg }
@@ -123,6 +129,7 @@ object LocalBrain {
             return Autoplay.start(act, m.groupValues[1].toIntOrNull() ?: 30)
         }
 
+<<<<<<< HEAD
         // Phone facts and simple controls: answered on the phone, no AI call.
         when {
             l in setOf("time", "what time is it", "what's the time", "current time", "কয়টা বাজে", "সময় কত", "এখন কয়টা বাজে") ->
@@ -144,6 +151,8 @@ object LocalBrain {
             l in setOf("volume down", "decrease volume", "ভলিউম কমাও") -> return volume(act, android.media.AudioManager.ADJUST_LOWER)
         }
 
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         when (l) {
             "back", "go back" -> return screen("Back") { it.back() }
             "home", "go home" -> return screen("Home") { it.home() }

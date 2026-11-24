@@ -27,9 +27,13 @@ object Voice {
         if (!p.getBoolean("el_on", true)) return false
         val serverReady = Config.enabled() && !p.getString("svtoken", "").isNullOrBlank()
         val localReady = !p.getString("el_key", "").isNullOrBlank() && !p.getString("el_voice", "").isNullOrBlank()
+<<<<<<< HEAD
         // when every saved key ran out of quota, pause ElevenLabs for an hour so the phone voice starts at once
         val paused = System.currentTimeMillis() < p.getLong("el_pause_until", 0L)
         return serverReady || (localReady && !paused)
+=======
+        return serverReady || localReady
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     }
 
     /** Asks the server's speak endpoint. The admin's ElevenLabs key and voice ID are used there, never sent to the phone. */
@@ -71,6 +75,7 @@ object Voice {
     }
 
     /** Blocking. Female voices on the account as (voiceId, label), or an error message. */
+<<<<<<< HEAD
     fun femaleVoices(keys: String): Pair<List<Pair<String, String>>, String?> {
         var lastErr = "No ElevenLabs key saved."
         // several keys may be saved: the first one that works is used
@@ -94,6 +99,26 @@ object Voice {
             }
         }
         return emptyList<Pair<String, String>>() to lastErr
+=======
+    fun femaleVoices(key: String): Pair<List<Pair<String, String>>, String?> {
+        try {
+            val (code, b) = call("/v2/voices?gender=female&page_size=100", key)
+            if (code != 200) return emptyList<Pair<String, String>>() to "ElevenLabs error $code. Check the API key."
+            val arr = JSONObject(String(b)).getJSONArray("voices")
+            val out = ArrayList<Pair<String, String>>()
+            for (i in 0 until arr.length()) {
+                val v = arr.getJSONObject(i)
+                val labels = v.optJSONObject("labels")
+                if (labels?.optString("gender").equals("female", ignoreCase = true)) {
+                    val extra = listOf(labels?.optString("accent").orEmpty(), labels?.optString("descriptive").orEmpty()).filter { it.isNotBlank() }
+                    out.add(v.getString("voice_id") to (v.optString("name") + if (extra.isEmpty()) "" else " (" + extra.joinToString(", ") + ")"))
+                }
+            }
+            return out to null
+        } catch (e: Exception) {
+            return emptyList<Pair<String, String>>() to "Network error: ${e.message}"
+        }
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     }
 
     /** Picks the ElevenLabs speech model that lists Bengali and has the most languages; falls back to multilingual v2. */
@@ -136,12 +161,16 @@ object Voice {
             if (code == 200 && bytes.isNotEmpty()) break
             if (code !in listOf(401, 402, 403, 429)) break
         }
+<<<<<<< HEAD
         if (code != 200 || bytes.isEmpty()) {
             if (code in listOf(401, 402, 403, 429)) {
                 prefs(ctx).edit().putLong("el_pause_until", System.currentTimeMillis() + 60 * 60 * 1000L).apply()
             }
             return null
         }
+=======
+        if (code != 200 || bytes.isEmpty()) return null
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         val f = File(ctx.cacheDir, "tts_${System.nanoTime()}.mp3")
         f.writeBytes(bytes)
         return f
@@ -152,7 +181,11 @@ object Voice {
         val my = ++seq
         var answered = false
         // Do not keep the user waiting: if the natural voice is not ready in time, the phone voice starts now.
+<<<<<<< HEAD
         main.postDelayed({ if (!answered && my == seq) { answered = true; onFail() } }, 2000)
+=======
+        main.postDelayed({ if (!answered && my == seq) { answered = true; onFail() } }, 2500)
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
         Thread {
             val file = try { fetch(ctx, text) } catch (e: Exception) { null }
             main.post {
@@ -178,6 +211,7 @@ object Voice {
         player = null
     }
 
+<<<<<<< HEAD
     /** Makes a spoken voice file from text with the ElevenLabs voice, then shares it to one app (for example imo or Telegram). */
     fun shareToApp(ctx: Context, text: String, pkg: String): String {
         val f = fetch(ctx, text) ?: return "Could not make the voice. Check the ElevenLabs key and voice ID in Settings."
@@ -205,5 +239,7 @@ object Voice {
         }
     }
 
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
     fun stop() { seq++; release() }
 }

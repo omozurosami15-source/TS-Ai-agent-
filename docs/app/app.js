@@ -64,9 +64,12 @@ const Plan = {
   isOwner: () => Plan.get() === 'owner' && Owner.unlocked(),
   companion: () => CFG.ALL_FREE || ['p1', 'p2', 'owner'].includes(Plan.get()),
   premium: () => CFG.ALL_FREE || ['p2', 'owner'].includes(Plan.get()),
+<<<<<<< HEAD
   // each of the 17 premium plans is unlocked separately by its own code (stored as {moduleId: untilTime})
   modules() { try { return JSON.parse(store.get('modules', '{}')) || {}; } catch (e) { return {}; } },
   hasModule(id) { if (CFG.ALL_FREE || Plan.get() === 'owner') return true; const u = Plan.modules()[id]; return u !== undefined && (u === 0 || Date.now() < u); },
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
   label() {
     const p = Plan.get(), u = Number(store.get('plan_until', '0'));
     const n = { p1: 'PLAN 1', p2: 'PLAN 2', owner: 'OWNER' }[p] || 'FREE';
@@ -81,6 +84,7 @@ async function redeem(raw) {
   const c = (book.coupons || []).find(x => x.h === h);
   if (!c) return 'That code is not valid.';
   if ((book.revoked || []).includes(c.id)) return 'That code has been withdrawn.';
+<<<<<<< HEAD
   if (String(c.plan).startsWith('module:')) {
     const mid = c.plan.slice(7), mod = PREMIUM_MODULES.find(x => x.id === mid);
     if (!mod) return 'That code is not valid.';
@@ -89,6 +93,8 @@ async function redeem(raw) {
     applyPlanTheme();
     return 'Unlocked: ' + mod.n + (c.days === 0 ? '' : ' for ' + c.days + ' days');
   }
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
   store.set('plan', c.plan); store.set('plan_code_id', c.id);
   store.set('plan_until', c.days === 0 ? 0 : Date.now() + c.days * 86400000);
   return 'Activated: ' + Plan.label();
@@ -209,6 +215,7 @@ const LLM = {
     j = await r.json(); const c = j.choices[0].message.content;
     return Array.isArray(c) ? c.map(x => x.text || '').join('') : String(c || '');
   },
+<<<<<<< HEAD
   async analyzeImage(system, prompt, dataUrl) {
     const p = LLM.provider(), key = LLM.key(p), model = LLM.model(p);
     if (!LLM.configured()) throw new Error('Open SETTINGS and configure an AI provider, API key and model first.');
@@ -231,6 +238,8 @@ const LLM = {
     if(!r.ok) throw new Error('Vision API error '+r.status+': '+(await r.text()).slice(0,180));
     j=await r.json(); const c=j.choices?.[0]?.message?.content; return Array.isArray(c)?c.map(x=>x.text||'').join('\n'):String(c||'');
   },
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
   async models() {
     const p = LLM.provider(), key = LLM.key(p); if (!key) throw new Error('Enter the key for ' + p.toUpperCase() + ' first');
     let r, j;
@@ -401,7 +410,11 @@ async function speak(text, lang) {
   stopSpeak();
   if (Eleven.configured()) { try { const a = await Eleven.speak(text); a.onplay = () => setState(2); a.onended = () => { if (state === 2) setState(0); }; await a.play(); return; } catch (e) {} }
   if (!('speechSynthesis' in window)) return;
+<<<<<<< HEAD
   const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.rate = Math.max(0.75, Math.min(1.25, Number(store.get('voice_rate', '1')) || 1)); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
+=======
+  const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
 }
 function listen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -676,6 +689,7 @@ function boot() {
 }
 function tick() {
   const s = Math.floor((Date.now() - t0) / 1000), p = n => String(n).padStart(2, '0');
+<<<<<<< HEAD
   $('sys').textContent = ''
 }
 /* ---------- premium multi-page navigation ---------- */
@@ -823,6 +837,12 @@ function initPremiumNavigation(){
 
 async function init() {
   startRain(); startStage(); boot(); initPremiumNavigation(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
+=======
+  $('sys').textContent = 'UPTIME ' + p(s / 3600 | 0) + ':' + p(s / 60 % 60 | 0) + ':' + p(s % 60) + ' | VOICE:' + voiceLang() + ' | OWNER:' + (!Owner.isSet() ? '-' : Owner.unlocked() ? 'ON' : 'LOCKED') + ' | PLAN:' + (Plan.get() || 'free').toUpperCase() + ' | COINS:' + (store.get('coins_text') || '-');
+}
+async function init() {
+  startRain(); startStage(); boot(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
   $('lang').textContent = voiceLang().split('-')[0].toUpperCase(); $('lang').onclick = () => say('Voice language: ' + toggleLang());
   $('mic').onclick = listen; $('abort').onclick = abortAll; $('send').onclick = () => { const v = $('chat').value; $('chat').value = ''; submit(v); };
   $('chat').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('send').click(); });
@@ -834,6 +854,7 @@ async function init() {
 }
 if (HAS_DOM) window.addEventListener('DOMContentLoaded', init);
 if (typeof module !== 'undefined') module.exports = { parseCommand, packCompile, packCanonical, parseSlots, normCode, sha256hex, memLinks, store, Plan, Owner, redeem, CFG };
+<<<<<<< HEAD
 
 /* ---------- signal scan radar (home, like the Android app) ---------- */
 (function radar(){
@@ -901,3 +922,5 @@ function bottomBarInit(){
   if(mic&&realMic) mic.addEventListener('click',()=>realMic.click());
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bottomBarInit); else bottomBarInit();
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b

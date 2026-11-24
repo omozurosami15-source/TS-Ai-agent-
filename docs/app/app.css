@@ -75,6 +75,7 @@ input:focus,textarea:focus{box-shadow:0 0 0 3px rgba(0,255,156,.15)}
 ::selection{background:rgba(0,255,156,.3);color:#fff}
 @media (max-width:899px){.btn,.chip{-webkit-tap-highlight-color:transparent}#right .card:hover{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+<<<<<<< HEAD
 
 /* ===== MISS SARA premium multi-page layer ===== */
 :root{--gold:#e8c77b;--glass:rgba(5,20,16,.78);--softline:rgba(115,255,207,.18)}
@@ -168,3 +169,5 @@ input:focus,textarea:focus{box-shadow:0 0 0 3px rgba(0,255,156,.15)}
 .pl-all-t{font:800 22px monospace;color:#ffd700}
 .pl-all-s{font:13px monospace;color:#e8fff3;margin-top:4px}
 .pl-upgrade{margin-top:12px;padding:12px 26px;border:0;border-radius:24px;background:linear-gradient(90deg,#ffd700,#f5a524);color:#1a1200;font:800 15px monospace;cursor:pointer}
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b

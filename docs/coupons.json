@@ -53,6 +53,7 @@
    "plan": "p2",
    "days": 365,
    "id": "c009"
+<<<<<<< HEAD
   },
   {
    "h": "c60dfee4d78ec713f697c2413452ffee9699d6d7d14b8011dca2d22e2b87cf4d",
@@ -155,6 +156,8 @@
    "plan": "module:analytics",
    "days": 0,
    "id": "c026"
+=======
+>>>>>>> 70ef1c274ce2bdca019764a62eb3127290033e2b
   }
  ],
  "revoked": []
