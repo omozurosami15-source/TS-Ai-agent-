@@ -79,7 +79,11 @@ object Llm {
 
     private val answerCache = LinkedHashMap<String, Pair<Long, String>>()
 
-    fun complete(ctx: Context, system: String, prompt: String, maxTokens: Int, search: Boolean): String {
+    fun complete(ctx: Context, system0: String, prompt: String, maxTokens0: Int, search0: Boolean): String {
+        // The active plan's own AI system: specialist instructions, answer length and web search.
+        val system = system0 + PlanAi.systemBlock(ctx)
+        val maxTokens = PlanAi.tokens(ctx, maxTokens0)
+        val search = search0 || PlanAi.search(ctx, maxTokens0)
         // The same question asked again within 10 minutes is answered from memory: no extra AI call.
         val cacheKey = (system + "\u0001" + prompt + "\u0001" + maxTokens + search).hashCode().toString()
         if (!search) synchronized(answerCache) {
@@ -115,7 +119,7 @@ object Llm {
 
     private fun completeWith(ctx: Context, p: String, system: String, prompt: String, maxTokens: Int, search: Boolean, keyOverride: String? = null): String {
         val key = keyOverride ?: key(ctx, p)
-        val model = model(ctx, p)
+        val model = PlanAi.modelFor(ctx, p).ifBlank { model(ctx, p) }
         return when (p) {
             "anthropic" -> anthropic(key, model, system, prompt, maxTokens, search)
             "cloud" -> cloud(ctx, key, model, system, prompt)

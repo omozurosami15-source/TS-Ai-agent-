@@ -1,6 +1,7 @@
 package com.tsagent.app
 
 import android.app.Activity
+import android.animation.ValueAnimator
 import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Canvas
@@ -29,7 +30,9 @@ import kotlin.math.max
 class PlanDashboardActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("cfg", Context.MODE_PRIVATE) }
     private var current = 1
-    private lateinit var artwork: ImageView
+    private lateinit var engineLabel: TextView
+    private lateinit var modelButton: Button
+    private lateinit var testButton: Button
     private lateinit var title: TextView
     private lateinit var status: TextView
     private lateinit var motionLabel: TextView
@@ -95,7 +98,7 @@ class PlanDashboardActivity : Activity() {
         top.addView(status, LinearLayout.LayoutParams(-2, dp(44)))
         base.addView(top)
 
-        val sub = text("PURCHASED PLAN ARTWORK ALSO APPEARS ON THE MAIN APP HOME", 10f, 0xFF8CA7B7.toInt())
+        val sub = text("THE DEFAULT PLAN'S REAL 3D OBJECT AND AI ENGINE RUN ON THE MAIN APP HOME", 10f, 0xFF8CA7B7.toInt())
         sub.setPadding(dp(4), dp(8), dp(4), dp(8)); base.addView(sub)
 
         val selectorScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
@@ -111,17 +114,10 @@ class PlanDashboardActivity : Activity() {
             }
             clipToOutline = true
         }
-        artwork = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.FIT_CENTER
-            adjustViewBounds = true
-            setBackgroundColor(Color.BLACK)
-            contentDescription = "Plan visual reference"
-        }
-        artFrame.addView(artwork, FrameLayout.LayoutParams(-1, -1))
-        fx = PlanFxView(this)
-        artFrame.addView(fx, FrameLayout.LayoutParams(-1, -1))
-        threeD = Plan3DView(this)
+        threeD = Plan3DView(this).apply { setBackdrop(true); setFocus(0.5f, 0.52f, 0.80f) }
         artFrame.addView(threeD, FrameLayout.LayoutParams(-1, -1))
+        fx = PlanFxView(this).apply { alpha = 0.6f }
+        artFrame.addView(fx, FrameLayout.LayoutParams(-1, -1))
         body.addView(artFrame, LinearLayout.LayoutParams(-1, dp(280)).apply { bottomMargin = dp(10) })
 
         val info = LinearLayout(this).apply {
@@ -137,6 +133,8 @@ class PlanDashboardActivity : Activity() {
             setPadding(0, dp(10), 0, 0)
         }
         info.addView(featureLabel)
+        engineLabel = text("", 11f, 0xFFFFD27A.toInt()).apply { setPadding(0, dp(10), 0, 0) }
+        info.addView(engineLabel)
         body.addView(info, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
 
         val actions = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -162,6 +160,12 @@ class PlanDashboardActivity : Activity() {
         val close = Button(this).apply { text = "DONE"; isAllCaps = false; setOnClickListener { finish() } }
         actions.addView(close, LinearLayout.LayoutParams(dp(76), dp(48)))
         body.addView(actions)
+        val actions2 = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        modelButton = Button(this).apply { text = "PLAN AI MODEL"; isAllCaps = false; setOnClickListener { showModelDialog() } }
+        testButton = Button(this).apply { text = "TEST PLAN AI"; isAllCaps = false; setOnClickListener { testPlanAi() } }
+        actions2.addView(modelButton, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginEnd = dp(6) })
+        actions2.addView(testButton, LinearLayout.LayoutParams(0, dp(48), 1f))
+        body.addView(actions2, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
         scroll.addView(body)
         base.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(base)
@@ -226,20 +230,12 @@ class PlanDashboardActivity : Activity() {
         descriptionLabel.text = planDescription(current)
         featureLabel.text = planFeatures(current)
         refreshPlanState()
-        try {
-            assets.open("plan_designs/plan_${current.toString().padStart(2, '0')}.png").use { stream ->
-                artwork.setImageDrawable(android.graphics.drawable.Drawable.createFromStream(stream, null))
-            }
-        } catch (_: Exception) {
-            artwork.setImageDrawable(null)
-            Toast.makeText(this, "Plan artwork is missing", Toast.LENGTH_SHORT).show()
-        }
         refreshSelector()
     }
 
     private fun refreshPlanState() {
         val active = Entitlements.isPlanActive(this, "p$current")
-        val isDefault = prefs.getInt("dashboard_plan", 1) == current
+        val isDefault = Entitlements.dashboardPlanNumber(this) == current
         status.text = when {
             !active -> "PREVIEW ONLY"
             isDefault -> "ACTIVE DEFAULT"
@@ -247,6 +243,9 @@ class PlanDashboardActivity : Activity() {
         }
         makeDefault.isEnabled = active
         makeDefault.alpha = if (active) 1f else .55f
+        engineLabel.text = PlanAi.summary(this, current)
+        modelButton.isEnabled = active; modelButton.alpha = if (active) 1f else .55f
+        testButton.isEnabled = active; testButton.alpha = if (active) 1f else .55f
         unlockButton.text = if (active) "UNLOCKED" else "UNLOCK"
         unlockButton.isEnabled = !active
         refreshSelector()
@@ -292,9 +291,52 @@ class PlanDashboardActivity : Activity() {
             }
     }
 
+    private fun showModelDialog() {
+        if (!Entitlements.isPlanActive(this, "p$current")) {
+            Toast.makeText(this, "Unlock this plan first.", Toast.LENGTH_SHORT).show(); return
+        }
+        val provider = Llm.provider(this)
+        val field = EditText(this).apply {
+            hint = if (provider == "cloud") "TS Cloud: this plan uses tier ${PlanCatalog.get(current).tier}" else "Model for this plan (empty = SETTINGS model)"
+            setText(PlanAi.savedModel(this@PlanDashboardActivity, current, provider)); setSingleLine(true)
+        }
+        AlertDialog.Builder(this).setTitle("AI model: " + names[current - 1] + " / " + provider.uppercase(Locale.US))
+            .setMessage("Every plan can use its own model with your own key. Leave it empty to use the model chosen in SETTINGS.")
+            .setView(field)
+            .setNegativeButton("CANCEL", null)
+            .setPositiveButton("SAVE") { _, _ ->
+                PlanAi.setModel(this, current, provider, field.text.toString())
+                refreshPlanState()
+            }.show()
+    }
+
+    /** Asks this plan's own AI engine a question, so the plan can be checked before it is the default. */
+    private fun testPlanAi() {
+        if (!Entitlements.isPlanActive(this, "p$current")) {
+            Toast.makeText(this, "Unlock this plan first.", Toast.LENGTH_SHORT).show(); return
+        }
+        val n = current
+        Toast.makeText(this, "Asking the plan AI...", Toast.LENGTH_SHORT).show()
+        Thread {
+            val reply = try {
+                PlanAi.forced = n
+                Llm.complete(this, "You are the AI engine of one plan inside the TS Agent app.",
+                    "In two short sentences say what you are and what you are best at.", 200, false)
+            } catch (e: Exception) {
+                "Not available: " + (e.message ?: "")
+            } finally {
+                PlanAi.forced = 0
+            }
+            runOnUiThread {
+                AlertDialog.Builder(this).setTitle(names[n - 1]).setMessage(reply.trim())
+                    .setPositiveButton("OK", null).show()
+            }
+        }.start()
+    }
+
     private fun refreshSelector() {
         selector.removeAllViews()
-        val default = prefs.getInt("dashboard_plan", 1)
+        val default = Entitlements.dashboardPlanNumber(this)
         for (i in 1..17) {
             val selected = i == current
             val unlocked = Entitlements.isPlanActive(this, "p$i")
@@ -512,9 +554,45 @@ class PlanDashboardActivity : Activity() {
                     c.drawLine(w*.5f-radius*1.6f,h*.52f,w*.5f+radius*1.6f,h*.52f,p)
                 }
             }
+            if (plan >= 7) {
+                // Animated neural-orbit field: independent of the reusable AI-core artwork.
+                val cx = w * .5f
+                val cy = h * .50f
+                val radius = minOf(w, h) * .30f
+                p.style = Paint.Style.STROKE
+                p.strokeWidth = dp(1).toFloat()
+                for (ring in 0..2) {
+                    p.color = if (ring == 1) magenta else cyan
+                    p.alpha = 48 + ring * 12
+                    val oval = RectF(cx - radius * (1f + ring * .16f),
+                        cy - radius * (.34f + ring * .07f),
+                        cx + radius * (1f + ring * .16f),
+                        cy + radius * (.34f + ring * .07f))
+                    c.save()
+                    c.rotate(phase * 360f + ring * 60f, cx, cy)
+                    c.drawOval(oval, p)
+                    c.restore()
+                }
+                p.style = Paint.Style.FILL
+                for (i in 0..23) {
+                    val angle = (i / 24f) * 6.28318f + phase * 6.28318f * (if (i % 2 == 0) 1f else -1f)
+                    val orbit = radius * (.48f + (i % 4) * .16f)
+                    val x = cx + kotlin.math.cos(angle) * orbit
+                    val y = cy + kotlin.math.sin(angle) * orbit * .40f
+                    p.color = if (i % 5 == 0) magenta else cyan
+                    p.alpha = 90 + ((kotlin.math.sin(phase * 6.28318f + i) + 1f) * 65).toInt()
+                    c.drawCircle(x, y, dp(if (i % 5 == 0) 2 else 1).toFloat(), p)
+                }
+                p.style = Paint.Style.STROKE
+                p.color = green
+                p.alpha = 80
+                c.drawCircle(cx, cy, radius * (.22f + .025f * kotlin.math.sin(phase * 6.28318f)), p)
+            }
             p.alpha = 255
         }
         override fun onDetachedFromWindow() { removeCallbacks(runner); super.onDetachedFromWindow() }
     }
-
+    override fun onDestroy() {
+        super.onDestroy()
+    }
 }

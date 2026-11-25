@@ -2,6 +2,7 @@ package com.tsagent.app
 
 import java.io.File
 
+import android.animation.ValueAnimator
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
@@ -44,7 +45,7 @@ import java.util.Locale
 class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var stage: StageView
-    private lateinit var planArtwork: android.widget.ImageView
+    private lateinit var plan3d: Plan3DView
     private lateinit var planThemeLabel: TextView
     private lateinit var mic: MicView
     private lateinit var transcript: TextView
@@ -55,8 +56,8 @@ class MainActivity : Activity() {
     private var keepListening = false
     /** True while the recognizer is actually open, so two listeners never run at the same time. */
     private var listening = false
-    private lateinit var sysLine: TextView
-    private lateinit var tasksText: TextView
+    private lateinit var statusPanel: StatusPanel
+    private lateinit var tasksText: TasksPanel
     private lateinit var newsText: TextView
     private lateinit var chatRow: LinearLayout
     private lateinit var input: EditText
@@ -127,11 +128,13 @@ class MainActivity : Activity() {
             online.text = if (on) "● ONLINE" else "● SETUP"
             online.setTextColor(if (on) Theme.G else Theme.A)
             val s = (System.currentTimeMillis() - t0) / 1000
-            sysLine.text = String.format(Locale.US, "UPTIME %02d:%02d:%02d | ACCESSIBILITY:%s | OWNER:%s | PLAN:%s | COINS:%s | COMPANION:%s",
-                s / 3600, s / 60 % 60, s % 60, if (on) "ON" else "OFF",
+            val dn = Entitlements.dashboardPlanNumber(this@MainActivity)
+            val pl = Entitlements.plan(this@MainActivity)
+            val planName = if (pl == "owner") "OWNER" else if (dn in 1..17) PlanCatalog.get(dn).name.uppercase(Locale.US)
+                else pl.ifEmpty { "free" }.uppercase(Locale.US)
+            statusPanel.set(String.format(Locale.US, "%02d:%02d:%02d", s / 3600, s / 60 % 60, s % 60), on,
                 if (!OwnerAuth.isSet(this@MainActivity)) "-" else if (OwnerAuth.unlocked(this@MainActivity)) "ON" else "LOCKED",
-                Entitlements.plan(this@MainActivity).ifEmpty { "free" }.uppercase(Locale.US),
-                prefs.getString("coins_text", "-"),
+                planName, prefs.getString("coins_text", "-") ?: "-",
                 if (prefs.getBoolean("comp_on", false) && OwnerAuth.unlocked(this@MainActivity)) "ON" else "OFF")
             main.postDelayed(this, 1000)
         }
@@ -281,52 +284,61 @@ class MainActivity : Activity() {
         }
         root.addView(content, FrameLayout.LayoutParams(-1, -1))
 
-        // header
+        // ===== Home screen (follows the Figma design) =====
+        // header: photo, name, tagline, SETTINGS and SETUP
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        header.addView(AvatarView(this), LinearLayout.LayoutParams(dp(66), dp(78)).apply { marginEnd = dp(6) })
+        val titleCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val gt = GlitchTitle(this, "MISS SARA")
         titleView = gt
-        header.addView(gt, LinearLayout.LayoutParams(0, -2, 1f))
-        online = TextView(this).apply {
-            textSize = 11f; typeface = mono; setPadding(dp(10), dp(4), dp(10), dp(4)); background = card(Theme.DIM)
+        titleCol.addView(gt)
+        titleCol.addView(TextView(this).apply {
+            val sp = SpannableStringBuilder("Your AI Assistant ♥")
+            sp.setSpan(ForegroundColorSpan(Theme.M), sp.length - 1, sp.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text = sp; textSize = 13f; setTextColor(Theme.C); typeface = Typeface.DEFAULT_BOLD
+        })
+        header.addView(titleCol, LinearLayout.LayoutParams(0, -2, 1f))
+        val btnBox = LinearLayout(this).apply {
+            gravity = Gravity.CENTER; setPadding(dp(8), dp(8), dp(8), dp(8))
+            background = NeonBg(Theme.G, 0xCC03120C.toInt(), 8f)
         }
-        val plansTop = TextView(this).apply {
-            text = "✦ PLANS"; typeface = mono; textSize = 11f; setTextColor(Theme.C)
-            setPadding(dp(8), dp(4), dp(8), dp(4))
-            background = GradientDrawable().apply { setStroke(dp(1), Theme.C); cornerRadius = dp(8).toFloat() }
-            setOnClickListener { openPlanDashboard() }
+        fun hdrBtn(label: String, color: Int, run: () -> Unit): TextView {
+            val v = TextView(this@MainActivity).apply {
+                text = label; typeface = Typeface.DEFAULT_BOLD; textSize = 12f; setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER; setPadding(dp(10), dp(8), dp(10), dp(8))
+                background = NeonBg(color, 0xDD02100A.toInt(), 7f, 1.4f)
+                setOnClickListener { run() }
+            }
+            pressFx(v)
+            return v
         }
-        pressFx(plansTop)
-        header.addView(plansTop, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
-        val settingsTop = TextView(this).apply {
-            text = "⚙ SETTINGS"; typeface = mono; textSize = 11f; setTextColor(Theme.A)
-            setPadding(dp(8), dp(4), dp(8), dp(4))
-            background = GradientDrawable().apply { setStroke(dp(1), Theme.A); cornerRadius = dp(8).toFloat() }
-            setOnClickListener { showSettings() }
-        }
-        pressFx(settingsTop)
-        header.addView(settingsTop, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
-        header.addView(online)
+        btnBox.addView(hdrBtn("⚙  SETTINGS", Theme.C) { showSettings() }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(4) })
+        btnBox.addView(hdrBtn("🚀  SETUP", Theme.M) { showSetup() })
+        header.addView(btnBox)
         content.addView(header)
-        sysLine = TextView(this).apply { textSize = 11f; typeface = mono; setTextColor(Theme.DIM) }
-        content.addView(sysLine)
+        // the old "online" badge is kept (it feeds ACCESSIBILITY in the status strip)
+        online = TextView(this)
 
-        // terminal transcript
+        // system strip
+        statusPanel = StatusPanel(this).apply { onCell = { i -> if (i == 3) openPlanDashboard() } }
+        content.addView(statusPanel, LinearLayout.LayoutParams(-1, dp(76)).apply { topMargin = dp(6) })
+
+        // terminal transcript + AI CORE badge
         transcript = TextView(this).apply { setTextColor(Theme.TX); textSize = 12.5f; typeface = mono; setLinkTextColor(Theme.C); movementMethod = LinkMovementMethod.getInstance() }
         transcriptScroll = ScrollView(this).apply {
-            background = card(0x8800FF9C.toInt())
-            setPadding(dp(10), dp(8), dp(10), dp(8))
+            background = NeonBg(Theme.G, 0xDD03120C.toInt(), 10f)
+            setPadding(dp(12), dp(10), dp(12), dp(8))
             addView(transcript)
         }
-        content.addView(transcriptScroll, LinearLayout.LayoutParams(-1, dp(120)).apply { topMargin = dp(8) })
+        val termRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        termRow.addView(transcriptScroll, LinearLayout.LayoutParams(0, dp(100), 1f))
+        termRow.addView(AiCoreBadge(this), LinearLayout.LayoutParams(dp(82), dp(82)).apply { marginStart = dp(6) })
+        content.addView(termRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
 
-        // Main app stage: keep the original MISS SARA HUD and place the purchased plan artwork behind it.
+        // main stage: animated plan background + real 3D plan object (only with a plan) and the HUD on top
         val stageFrame = FrameLayout(this)
-        planArtwork = android.widget.ImageView(this).apply {
-            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
-            alpha = 0f
-            contentDescription = "Purchased plan home design"
-        }
-        stageFrame.addView(planArtwork, FrameLayout.LayoutParams(-1, -1))
+        plan3d = Plan3DView(this).apply { visibility = View.GONE; setBackdrop(true) }
+        stageFrame.addView(plan3d, FrameLayout.LayoutParams(-1, -1))
         planThemeLabel = TextView(this).apply {
             textSize = 9f; typeface = mono; setTextColor(Theme.C)
             setPadding(dp(7), dp(4), dp(7), dp(4)); alpha = 0f
@@ -343,32 +355,33 @@ class MainActivity : Activity() {
         }
         stageFrame.addView(stage, FrameLayout.LayoutParams(-1, -1))
         stageFrame.addView(planThemeLabel, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply { topMargin = dp(8); marginEnd = dp(8) })
+        val abortChip = TextView(this).apply {
+            text = "■ ABORT"; setTextColor(Theme.RED); textSize = 11f; typeface = mono
+            setPadding(dp(10), dp(5), dp(10), dp(5)); background = NeonBg(Theme.RED, 0xCC1A0509.toInt(), 6f, 1.2f)
+            setOnClickListener { stopAll() }
+        }
+        pressFx(abortChip)
+        stageFrame.addView(abortChip, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.END).apply { bottomMargin = dp(2); marginEnd = dp(2) })
+        stageFrame.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> placePlan3d() }
         content.addView(stageFrame, LinearLayout.LayoutParams(-1, 0, 1f))
         applyPurchasedPlanHome()
 
-        // tasks
-        tasksText = TextView(this).apply {
-            setTextColor(Theme.TX); textSize = 11f; typeface = mono
-            background = card(Theme.DIM)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
+        // SIGNAL SCAN + TODAY.TASKS
+        tasksText = TasksPanel(this).apply {
             setOnClickListener { editNote("TODAY.TASKS // one per line, put ✓ at the start when done", "tasks", "") }
         }
         newsText = TextView(this).apply {
             setTextColor(Theme.TX); textSize = 11f; typeface = mono; setLinkTextColor(Theme.C)
             movementMethod = LinkMovementMethod.getInstance()
-            background = card(Theme.DIM)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { refreshNews() }
         }
         val bottom = LinearLayout(this)
-        newsText.visibility = View.GONE   // headlines box removed; the news text is kept hidden
-        bottom.addView(RadarPanel(this), LinearLayout.LayoutParams(0, dp(150), 1.15f).apply { marginEnd = dp(6) })
-        bottom.addView(newsText, LinearLayout.LayoutParams(0, -2, 0f).apply { width = 0 })
-        bottom.addView(tasksText, LinearLayout.LayoutParams(0, -2, 1f))
+        bottom.addView(RadarPanel(this), LinearLayout.LayoutParams(0, dp(132), 1f).apply { marginEnd = dp(8) })
+        bottom.addView(tasksText, LinearLayout.LayoutParams(0, dp(132), 1f))
         content.addView(bottom, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
-        pressFx(tasksText); pressFx(newsText)
+        pressFx(tasksText)
 
-        // chat input
+        // chat input (opened by the CHAT button)
         chatRow = LinearLayout(this).apply { visibility = View.GONE }
         input = EditText(this).apply {
             hint = "$ type a command..."; setTextColor(Theme.G); setHintTextColor(Theme.DIM); typeface = mono
@@ -395,21 +408,39 @@ class MainActivity : Activity() {
         for (i in 1 until chatRow.childCount) pressFx(chatRow.getChildAt(i))
         content.addView(chatRow)
 
-        // controls
-        val controls = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, dp(8), 0, 0) }
-        controls.addView(TextView(this).apply {
-            text = "[ ABORT ]"; setTextColor(Theme.RED); textSize = 12f; typeface = mono
-            gravity = Gravity.CENTER; background = card(Theme.RED)
-            setPadding(dp(14), dp(9), dp(14), dp(9)); setOnClickListener { stopAll() }
-        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(12); marginStart = dp(12) })
+        // bottom bar: HOME / VOICE MODE / AI TOOLS / HISTORY / PROFILE
+        fun voiceToggle() { if (keepListening) stopKeep() else { keepListening = true; listen() } }
+        fun navBtn(label: String, color: Int, icon: View, active: Boolean, run: () -> Unit): LinearLayout {
+            val b = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+                background = NeonBg(color, if (active) ((color and 0xFFFFFF) or 0x55000000) else 0xCC03100C.toInt(), 9f, 1.8f)
+                setOnClickListener { run() }
+            }
+            b.addView(icon, LinearLayout.LayoutParams(dp(32), dp(32)))
+            b.addView(TextView(this@MainActivity).apply {
+                text = label; textSize = 10f; setTextColor(Color.WHITE); typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER; maxLines = 1
+            }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(1) })
+            pressFx(b)
+            return b
+        }
         mic = MicView(this).apply {
-            setOnClickListener { if (keepListening) stopKeep() else { keepListening = true; listen() } }
+            setOnClickListener { voiceToggle() }
             setOnLongClickListener { show("AGENT", "Voice language: " + toggleVoiceLang()); true }
         }
-        controls.addView(mic, LinearLayout.LayoutParams(dp(80), dp(80)))
-        controls.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).apply { marginStart = dp(12); marginEnd = dp(12) })
-        content.addView(controls)
-        pressFx(controls.getChildAt(0))   // ABORT
+        val nav = LinearLayout(this).apply { setPadding(0, dp(6), 0, 0) }
+        val navLp = { LinearLayout.LayoutParams(0, dp(64), 1f).apply { marginEnd = dp(4) } }
+        nav.addView(navBtn("HOME", 0xFF2D8CFF.toInt(), NavIconView(this, 0, 0xFF5AA9FF.toInt()), true) { flashIn(stage) }, navLp())
+        nav.addView(navBtn("VOICE MODE", 0xFFD13CFF.toInt(), mic, false) { voiceToggle() }, navLp())
+        nav.addView(navBtn("AI TOOLS", 0xFF28E070.toInt(), NavIconView(this, 1, 0xFF3DF08A.toInt()), false) { openPlanDashboard() }, navLp())
+        nav.addView(navBtn("HISTORY", 0xFFFFA726.toInt(), NavIconView(this, 2, 0xFFFFB84D.toInt()), false) { showHistory() }, navLp())
+        nav.addView(navBtn("PROFILE", 0xFF22D3EE.toInt(), NavIconView(this, 3, 0xFF3FE0F5.toInt()), false) { showProfile() }, navLp().apply { marginEnd = 0 })
+        content.addView(nav)
+        content.addView(TextView(this).apply {
+            text = "──────   TS Agent v16  •  Smart AI for You   ──────"
+            textSize = 10.5f; setTextColor(Theme.C); gravity = Gravity.CENTER; typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, dp(6), 0, 0)
+        })
 
         // CRT overlay + boot sequence
         root.addView(ScanView(this), FrameLayout.LayoutParams(-1, -1))
@@ -461,7 +492,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         trace("onResume")
-        if (::planArtwork.isInitialized) applyPurchasedPlanHome()
+        if (::plan3d.isInitialized) { applyPurchasedPlanHome(); plan3d.onResume() }
         // The user came back to the app: a task still running in the background must not press Home or Back and kick them out.
         if (keepListening) listen()
         Security.showPending(this)?.let { show("SECURITY", it) }
@@ -481,6 +512,7 @@ class MainActivity : Activity() {
     override fun onPause() {
         super.onPause()
         trace("onPause")
+        if (::plan3d.isInitialized) plan3d.onPause()
         try { pauseSafe() } catch (e: Throwable) { showStartupError(e) }
         listening = false
         main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
@@ -504,7 +536,7 @@ class MainActivity : Activity() {
         recognizer?.destroy()
     }
 
-    private fun setState(s: Int) { stage.state = s; mic.active = (s == 1) }
+    private fun setState(s: Int) { stage.state = s; mic.active = (s == 1); if (::plan3d.isInitialized) plan3d.setMode(s) }
 
     // ---- terminal transcript: typing animation + blinking cursor ----
     private var pending = ""
@@ -537,6 +569,7 @@ class MainActivity : Activity() {
         main.removeCallbacks(typer)
         if (pending.isNotEmpty()) { buf.append(pending); pending = "" }
         val label = if (who == "YOU") "root@ts:~$ " else "[ts] "
+        if (who == "AGENT" && ::plan3d.isInitialized) plan3d.pulse()
         val start = buf.length
         buf.append(label)
         buf.setSpan(ForegroundColorSpan(if (who == "YOU") Theme.G else Theme.C), start, buf.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -900,14 +933,7 @@ class MainActivity : Activity() {
 
     private fun refreshTasks() {
         val all = (prefs.getString("tasks", "") ?: "").lines().filter { it.isNotBlank() }
-        val done = all.count { it.trim().startsWith("✓") }
-        val cells = 16
-        val filled = if (all.isEmpty()) 0 else done * cells / all.size
-        val pct = if (all.isEmpty()) 0 else done * 100 / all.size
-        val bar = "[" + "█".repeat(filled) + "░".repeat(cells - filled) + "] $pct%"
-        val shown = all.take(4).joinToString("\n") { if (it.trim().startsWith("✓")) it.trim() else "▸ ${it.trim()}" }
-        tasksText.text = "[ TODAY.TASKS ] ${if (all.isEmpty()) "" else "$done/${all.size}"}\n$bar\n" +
-            (if (all.isEmpty()) "Tap to add tasks" else shown)
+        tasksText.setTasks(all)
         flashIn(tasksText)
     }
 
@@ -1133,28 +1159,57 @@ class MainActivity : Activity() {
         catch (e: Exception) { show("PLANS", "Could not open Plan Dashboard: ${e.message}") }
     }
 
-    /** Only a purchased/active plan changes the real app Home. Free users keep the original HUD. */
+    /** Puts the 3D object of the plan on Home. Where it sits and how big follows the globe of the stage. */
+    private fun placePlan3d() {
+        if (!::plan3d.isInitialized || !::stage.isInitialized) return
+        val w = stage.width; val h = stage.height
+        if (w <= 0 || h <= 0) return
+        plan3d.setFocus(stage.orbX / w, stage.orbY / h, (stage.orbR * 2.4f) / minOf(w, h))
+    }
+
+    /** Free users keep the original globe. A bought plan replaces it with that plan's real 3D object and animated background. */
     private fun applyPurchasedPlanHome() {
-        if (!::planArtwork.isInitialized) return
+        if (!::plan3d.isInitialized || !::stage.isInitialized) return
         val number = Entitlements.dashboardPlanNumber(this)
         if (number !in 1..17) {
-            planArtwork.setImageDrawable(null)
-            planArtwork.alpha = 0f
+            plan3d.visibility = View.GONE
+            stage.showOrb = true
             planThemeLabel.alpha = 0f
             return
         }
-        try {
-            assets.open("plan_designs/plan_${number.toString().padStart(2, '0')}.png").use { stream ->
-                planArtwork.setImageDrawable(android.graphics.drawable.Drawable.createFromStream(stream, null))
-            }
-            planArtwork.alpha = 0.34f
-            planThemeLabel.text = "ACTIVE PLAN ${number.toString().padStart(2, '0')}"
-            planThemeLabel.alpha = 1f
-        } catch (_: Exception) {
-            planArtwork.setImageDrawable(null)
-            planArtwork.alpha = 0f
-            planThemeLabel.alpha = 0f
+        val p = PlanCatalog.get(number)
+        plan3d.setPlan(number)
+        plan3d.visibility = View.VISIBLE
+        stage.showOrb = false
+        planThemeLabel.text = "PLAN " + number.toString().padStart(2, '0') + "  " + p.name.uppercase(Locale.US)
+        planThemeLabel.setTextColor(p.accent)
+        planThemeLabel.alpha = 1f
+        placePlan3d()
+    }
+
+    private fun showHistory() {
+        val tv = TextView(this).apply {
+            text = if (buf.isEmpty()) "No conversation yet in this session." else buf.toString()
+            setTextColor(Theme.TX); typeface = mono; textSize = 12f
+            setPadding(dp(16), dp(8), dp(16), dp(8)); setTextIsSelectable(true)
         }
+        AlertDialog.Builder(this).setTitle("HISTORY").setView(ScrollView(this).apply { addView(tv) })
+            .setPositiveButton("Close", null)
+            .setNeutralButton("Latest from TS") { _, _ -> showFeed() }.show()
+    }
+
+    private fun showProfile() {
+        val dn = Entitlements.dashboardPlanNumber(this)
+        val owned = Entitlements.ownedPlanNumbers(this)
+        val sb = StringBuilder()
+        sb.append("Plan on Home: ").append(if (dn in 1..17) "PLAN %02d  %s".format(dn, PlanCatalog.get(dn).name) else "FREE").append('\n')
+        sb.append("Plans owned: ").append(if (owned.isEmpty()) "none" else owned.joinToString(", ") { "P$it" }).append('\n')
+        sb.append("Coins: ").append(prefs.getString("coins_text", "-")).append('\n')
+        sb.append("Access: ").append(Entitlements.label(this))
+        AlertDialog.Builder(this).setTitle("PROFILE").setMessage(sb.toString())
+            .setPositiveButton("Plans") { _, _ -> openPlanDashboard() }
+            .setNeutralButton("Settings") { _, _ -> showSettings() }
+            .setNegativeButton("Close", null).show()
     }
 
     private fun showSettings() {

@@ -16,13 +16,13 @@ class GlitchTitle(ctx: Context, initial: String) : View(ctx) {
     private val d = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-        textSize = 20f * d
+        textSize = 28f * d
         letterSpacing = 0.12f
     }
     private var t = 0f
 
     override fun onMeasure(wSpec: Int, hSpec: Int) {
-        setMeasuredDimension(resolveSize((paint.measureText(label) + 6 * d).toInt(), wSpec), (30 * d).toInt())
+        setMeasuredDimension(resolveSize((paint.measureText(label) + 6 * d).toInt(), wSpec), (40 * d).toInt())
     }
 
     override fun onDraw(c: Canvas) {
