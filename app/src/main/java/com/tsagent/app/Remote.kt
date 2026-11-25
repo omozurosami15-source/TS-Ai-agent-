@@ -37,6 +37,12 @@ object Remote {
         return get("https://raw.githubusercontent.com/${Config.GITHUB_REPO}/main/docs/coupons.json")
     }
 
+    /** Blocking. Feature switches (docs/feature_switches.json), or null when offline. */
+    fun switches(): String? {
+        if (!Config.githubReady()) return null
+        return get("https://raw.githubusercontent.com/${Config.GITHUB_REPO}/main/docs/feature_switches.json")
+    }
+
     private fun newer(a: String, b: String): Boolean {
         val x = a.split(".", "-").map { it.toIntOrNull() ?: 0 }
         val y = b.split(".", "-").map { it.toIntOrNull() ?: 0 }

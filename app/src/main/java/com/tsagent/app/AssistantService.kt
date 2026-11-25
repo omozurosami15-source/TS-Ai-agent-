@@ -169,16 +169,16 @@ class AssistantService : Service() {
         }
         orb = FloatOrbView(this)
         val row = LinearLayout(this).apply { gravity = Gravity.CENTER }
-        fun chip(label: String, color: Int, onClick: () -> Unit) = TextView(this).apply {
+        fun chip(label: CharSequence, color: Int, onClick: () -> Unit) = TextView(this).apply {
             text = label; setTextColor(color); typeface = Typeface.MONOSPACE; textSize = 10.5f
             setPadding((10 * d).toInt(), (4 * d).toInt(), (10 * d).toInt(), (4 * d).toInt())
             background = GradientDrawable().apply { setColor(0xCC02100A.toInt()); setStroke((1 * d).toInt(), color); cornerRadius = 12 * d }
             setOnClickListener { onClick() }
         }
-        row.addView(chip("■ ABORT", Theme.RED) { Agent.cancelled = true; tts?.stop(); Voice.stop(); recognizer?.cancel(); orb.state = 0 },
+        row.addView(chip(Glyphs.label(this@AssistantService, Glyphs.SQUARE, Theme.RED, "ABORT"), Theme.RED) { Agent.cancelled = true; tts?.stop(); Voice.stop(); recognizer?.cancel(); orb.state = 0 },
             LinearLayout.LayoutParams(-2, -2).apply { marginEnd = (6 * d).toInt() })
-        row.addView(chip("🌐", Theme.C) { showCard("Voice language: " + toggleVoiceLang()) }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = (6 * d).toInt() })
-        row.addView(chip("✕", Theme.DIM) { stopSelf() })
+        row.addView(chip(Glyphs.span(this@AssistantService, Glyphs.GLOBE, Theme.C), Theme.C) { showCard("Voice language: " + toggleVoiceLang()) }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = (6 * d).toInt() })
+        row.addView(chip(Glyphs.span(this@AssistantService, Glyphs.CROSS, Theme.DIM), Theme.DIM) { stopSelf() })
         chips = row
         row.visibility = View.GONE
         orb.alpha = 0.72f
@@ -203,13 +203,9 @@ class AssistantService : Service() {
                     if (moved) { p.x = (ox + dx).toInt(); p.y = (oy + dy).toInt(); try { wm?.updateViewLayout(col, p) } catch (x: Exception) {} }
                 }
                 MotionEvent.ACTION_UP -> if (!moved) {
-<<<<<<< HEAD
-                    if (keepListening || Agent.running) stopKeep()
-=======
                     // a tap while working does NOT stop the task (it is often accidental); use ABORT to stop
                     if (Agent.running) showCard("Working. Press ABORT to stop.")
                     else if (keepListening) stopKeep()
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                     else { keepListening = prefs.getBoolean("auto_listen", true); setExpanded(true); listen() }
                 } else savePosition()
             }
@@ -269,7 +265,7 @@ class AssistantService : Service() {
         }
     }
 
-    private fun showCard(text: String) {
+    private fun showCard(text: CharSequence) {
         if (!::card.isInitialized) return
         card.text = text
         card.visibility = View.VISIBLE
@@ -292,6 +288,7 @@ class AssistantService : Service() {
 
     private fun speak(text: String, lang: String?) {
         if (!visible) return
+        if (!SpeechGate.claim("assistant", text) { tts?.stop(); Voice.stop() }) return
         if (Voice.configured(this)) {
             Voice.speak(this, text, { orb.state = 2 }, { if (orb.state == 2) orb.state = 0; afterSpeak() }) { systemSpeak(text, lang) }
             return
@@ -328,7 +325,7 @@ class AssistantService : Service() {
         recognizer?.destroy()
         recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
             setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(p: Bundle?) { orb.state = 1; showCard("🎙 Listening... speak now") }
+                override fun onReadyForSpeech(p: Bundle?) { orb.state = 1; showCard(Glyphs.label(this@AssistantService, Glyphs.MIC, Theme.C, "Listening... speak now")) }
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(v: Float) {}
                 override fun onBufferReceived(b: ByteArray?) {}
@@ -336,14 +333,9 @@ class AssistantService : Service() {
                 override fun onError(e: Int) {
                     orb.state = 0
                     main.post { recognizer?.destroy(); recognizer = null }
-<<<<<<< HEAD
-                    if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS && ++errStreak <= 5) {
-                        main.postDelayed({ if (keepListening) listen() }, 400)
-=======
                     if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                         errStreak = (errStreak + 1).coerceAtMost(50)
                         main.postDelayed({ if (keepListening) listen() }, (500L + errStreak * 250L).coerceAtMost(3000L))
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                     } else {
                         keepListening = false
                         showCard("Could not hear you, tap again")
@@ -354,7 +346,8 @@ class AssistantService : Service() {
                     errStreak = 0
                     main.post { recognizer?.destroy(); recognizer = null }
                     val t = r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                    if (t != null) submit(t)
+                    // its own reply heard back through the mic is not a new question
+                    if (t != null && !SpeechGate.isEcho(t)) submit(t)
                 }
                 override fun onPartialResults(b: Bundle?) {}
                 override fun onEvent(t: Int, b: Bundle?) {}

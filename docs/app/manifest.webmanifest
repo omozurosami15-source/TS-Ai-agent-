@@ -1,6 +1,2 @@
-<<<<<<< HEAD
-{"name":"TS Agent","short_name":"TS Agent","start_url":"./","scope":"./","display":"standalone","background_color":"#020604","theme_color":"#020604",
-=======
 {"name":"MISS SARA AI","short_name":"MISS SARA","start_url":"./","scope":"./","display":"standalone","background_color":"#020604","theme_color":"#020604",
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
  "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}

@@ -45,8 +45,6 @@ Without a server nobody can enforce coins or protect your own API keys (anything
 ## Many AI providers (bring your own keys)
 SETTINGS: enter any of these keys (each stays only on the phone): Anthropic (Claude), OpenAI, Google Gemini, xAI Grok, or a custom OpenAI-compatible service (OpenRouter, Groq, DeepSeek, Mistral, Together, a local server) with its base URL. Tap "AI PROVIDER" to switch the active one, then "CHOOSE MODEL" to pick from the provider's own list (model names change too fast to hard-code). Everything the AI does (screen control, calendar, files, companion, memory, language following) works the same with any of them, as long as the model can follow the JSON reply format; weaker models may make more mistakes. Web search is currently Claude-only. Not every model can see the screen text well or follow rules equally, so test your favourite.
 
-<<<<<<< HEAD
-=======
 ## MISS SARA web experience (v12)
 - The web dashboard is available at `docs/app/` and includes bilingual Bangla/English navigation, Voice Studio and Vision Lab.
 - Vision Lab can open the device camera or image gallery, preview the selected image, and analyze it after the user explicitly taps **ANALYZE IMAGE**. It supports diagram/chart explanation, screenshot/text reading, document-page explanation, object understanding and scene description.
@@ -54,7 +52,6 @@ SETTINGS: enter any of these keys (each stays only on the phone): Anthropic (Cla
 - The image is resized in the browser and sent directly to the configured AI provider only after the user requests analysis. Camera capture is not run in the background by the web app.
 - Voice Studio supports the browser's speech recognition and speech synthesis where available, with a speech-speed control. Browser/device support varies.
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 ## Bengali and other languages
 - Offline commands in Bengali work without an AI key through the language pack `assets/pack_bn.json` (the same file is `docs/packs/bn.json`): phrases like the Bengali for "open YouTube", "go back", "scroll down", "5 minute timer", "news", "play my favorite song" are mapped to the English commands. Add or fix phrases in that file (`{x}` = any text, `{n}` = a number); speech recognition spells things differently sometimes, so expect to add some. The app screens stay English; the pack is only a data file.
 - Voices: SETTINGS > Voice languages, comma separated (for example `bn-BD,en-US`). Long-press the mic (or tap the globe chip on the floating orb) to switch. Phones cannot detect the spoken language by themselves, so this is a one-tap switch. The AI always replies in the language you wrote, and the reply voice follows it.
@@ -132,11 +129,8 @@ Only the owner plan with owner mode unlocked can use it; free, Plan 1 and Plan 2
 
 ## Latest posts from the admin panel
 SETTINGS > "LATEST FROM TS (feed)" shows the posts you publish in the admin panel's Posts tab (needs `Config.SERVER` set to your backend). Tap a post to open its link or photo/video.
-<<<<<<< HEAD
-=======
 
 ## MISS SARA premium multi-page UI (v11 design layer)
 The web app keeps the original home dashboard and adds separate mobile-first navigation views for Chat, Memory, Soul, Voice, Vision, Tasks and Control. The **17 PLANS** page contains 17 individual module/plan detail screens (Neural Core, Voice Studio, Memory Vault, Soul Studio, Vision Lab, Web Intelligence, Coding Studio, File Reader, Task Automation, Smart Notes, Daily Briefing, Translator, Research Desk, Calendar Hub, Reminder Center, Security Center and System Analytics).
 
 Important: this is a front-end catalogue and UI layer, not a completed 17-product payment system. The current v10 entitlement implementation still recognizes FREE, PLAN 1, PLAN 2 and OWNER coupon tiers. To sell and activate each of the 17 plans independently, implement server-side payment verification, a plan-ID catalogue, entitlement checks in the PHP API, and matching Android entitlement support. Do not treat a browser-side button or localStorage value as proof of payment.
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb

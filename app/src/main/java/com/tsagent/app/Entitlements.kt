@@ -28,15 +28,14 @@ object Entitlements {
     }
 
     fun isOwner(ctx: Context) = plan(ctx) == "owner" && OwnerAuth.unlocked(ctx)
-    fun companion(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p1", "p2", "owner")
-    fun premium(ctx: Context) = Config.ALL_FREE || plan(ctx) in listOf("p2", "owner")
+    /** Any feature, checked against PlanRights (the single rights list). */
+    fun can(ctx: Context, feature: PlanRights.Feature): Boolean =
+        Config.ALL_FREE || PlanRights.has(plan(ctx), feature)
 
-<<<<<<< HEAD
-    fun label(ctx: Context): String {
-        val pl = plan(ctx)
-        val until = prefs(ctx).getLong("plan_until", 0L)
-        val name = when (pl) { "p1" -> "PLAN 1"; "p2" -> "PLAN 2"; "owner" -> "OWNER"; else -> "FREE" }
-=======
+    fun companion(ctx: Context) = can(ctx, PlanRights.Feature.COMPANION)
+    /** Plan 2 phone features (actions, floating assistant, autoplay, web search). */
+    fun premium(ctx: Context) = can(ctx, PlanRights.Feature.PHONE_ACTIONS)
+
     /**
      * Checks whether a dashboard plan is currently entitled.
      * Dashboard plan IDs are p1..p17; owner access includes every plan.
@@ -120,7 +119,6 @@ object Entitlements {
             pl.startsWith("module:") -> moduleName?.uppercase(Locale.US) ?: "MODULE"
             else -> "FREE"
         }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         return if (pl.isEmpty() || pl == "owner" || until == 0L) name
         else name + " until " + SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(until))
     }
@@ -158,10 +156,6 @@ object Entitlements {
         val b = book(ctx)
         val c = b.coupons[sha256(code)] ?: return "That code is not valid."
         if (c.id in b.revoked) return "That code has been withdrawn."
-<<<<<<< HEAD
-        prefs(ctx).edit().putString("plan", c.plan).putString("plan_code_id", c.id)
-            .putLong("plan_until", if (c.days == 0) 0L else now() + c.days * 86_400_000L).apply()
-=======
         val until = if (c.days == 0) 0L else now() + c.days * 86_400_000L
         prefs(ctx).edit().putString("plan", c.plan).putString("plan_code_id", c.id)
             .putLong("plan_until", until).apply()
@@ -172,17 +166,11 @@ object Entitlements {
             // the plan that was just bought is shown on Home straight away; it can be changed later in the plan screen
             prefs(ctx).edit().putString("owned", o.toString()).putInt("owned_last", n).putInt("dashboard_plan", n).apply()
         }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         return "Activated: " + label(ctx)
     }
 
     /** Blocking. Removes the plan if the code it came from was withdrawn in docs/coupons.json. */
     fun syncRevocations(ctx: Context) {
-<<<<<<< HEAD
-        val id = prefs(ctx).getString("plan_code_id", null) ?: return
-        val remote = Remote.coupons()?.let { try { parse(it) } catch (e: Exception) { null } } ?: return
-        if (id in remote.revoked) prefs(ctx).edit().remove("plan").remove("plan_until").remove("plan_code_id").apply()
-=======
         val remote = Remote.coupons()?.let { try { parse(it) } catch (e: Exception) { null } } ?: return
         val id = prefs(ctx).getString("plan_code_id", null)
         if (id != null && id in remote.revoked) prefs(ctx).edit().remove("plan").remove("plan_until").remove("plan_code_id").apply()
@@ -196,6 +184,5 @@ object Entitlements {
             if (cid.isNotEmpty() && cid in remote.revoked) { o.remove(k); changed = true }
         }
         if (changed) prefs(ctx).edit().putString("owned", o.toString()).apply()
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     }
 }

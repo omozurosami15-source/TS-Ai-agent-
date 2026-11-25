@@ -4,11 +4,7 @@
 const CFG = {
   OWNER_NAME: 'Tarek', OWNER_CONTACT: '+8801622058034', TELEGRAM_URL: 'https://t.me/ts_official_top',
   GITHUB_REPO: 'OWNER/REPO',
-<<<<<<< HEAD
-  SERVER: '',                     // <- your TS Cloud server, for example 'https://api.yourdomain.com' (no trailing slash)      // <- your repo, for example 'tarek/ts-agent'
-=======
   SERVER: '../../backend',       // Same-host PHP backend. Replace with your API base URL if hosted elsewhere (no trailing slash).
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   ALL_FREE: false, BUY_URL: 'https://t.me/ts_official_top', DEFAULT_LANG: 'en-US'
 };
 const HAS_DOM = typeof document !== 'undefined';
@@ -77,8 +73,6 @@ const Plan = {
     return !p || p === 'owner' || u === 0 ? n : n + ' until ' + new Date(u).toISOString().slice(0, 10);
   }
 };
-<<<<<<< HEAD
-=======
 
 // Paid subscription plans 2–18 map to the 17 supplied plan artworks 01–17.
 // Free plan (id 1) keeps the original MISS SARA Matrix home screen.
@@ -120,7 +114,6 @@ async function refreshCloudPlanArtwork() {
   applyPlanArtwork(local === 'p1' ? 2 : local === 'p2' ? 3 : 1, local ? Plan.label() : 'Free', 'local');
 }
 function badgePlanStatus(){ return !!document.getElementById('center')?.dataset.activePlan; }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 async function redeem(raw) {
   const code = normCode(raw);
   if (code.length < 12) return 'That code is not valid.';
@@ -138,10 +131,7 @@ async function redeem(raw) {
   }
   store.set('plan', c.plan); store.set('plan_code_id', c.id);
   store.set('plan_until', c.days === 0 ? 0 : Date.now() + c.days * 86400000);
-<<<<<<< HEAD
-=======
   applyPlanArtwork(c.plan === 'p1' ? 2 : c.plan === 'p2' ? 3 : 1, Plan.label(), 'local');
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   return 'Activated: ' + Plan.label();
 }
 
@@ -393,11 +383,7 @@ async function cloudAuth(action, email, password) {
   try {
     const r = await fetch(CFG.SERVER + '/api.php?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name: email.split('@')[0] }) });
     const j = await r.json().catch(() => ({})); if (!r.ok) return j.error || 'Error ' + r.status;
-<<<<<<< HEAD
-    store.set('svtoken', j.token); store.set('cloud_email', email); return 'Logged in to TS Cloud';
-=======
     store.set('svtoken', j.token); store.set('cloud_email', email); await refreshCloudPlanArtwork(); return 'Logged in to TS Cloud';
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   } catch (e) { return 'Network error: ' + e.message; }
 }
 const memory = () => (Owner.unlocked() ? store.get('memory') : '');
@@ -857,11 +843,7 @@ function initPremiumNavigation(){
 }
 
 async function init() {
-<<<<<<< HEAD
-  startRain(); startStage(); boot(); initPremiumNavigation(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
-=======
   startRain(); startStage(); boot(); initPremiumNavigation(); refreshCloudPlanArtwork(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   $('lang').textContent = voiceLang().split('-')[0].toUpperCase(); $('lang').onclick = () => say('Voice language: ' + toggleLang());
   $('mic').onclick = listen; $('abort').onclick = abortAll; $('send').onclick = () => { const v = $('chat').value; $('chat').value = ''; submit(v); };
   $('chat').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('send').click(); });

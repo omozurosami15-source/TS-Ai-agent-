@@ -26,13 +26,8 @@ object OwnerAuth {
 
     fun isSet(ctx: Context) = prefs(ctx).contains("owner_hash")
 
-<<<<<<< HEAD
-    /** True when no passphrase was ever set (old behaviour), or the owner is currently unlocked. */
-    fun unlocked(ctx: Context): Boolean = !isSet(ctx) || System.currentTimeMillis() < prefs(ctx).getLong("owner_until", 0L)
-=======
     /** Locked by default. Unlocked only when a passphrase is set AND the owner logged in within the last 7 days. */
     fun unlocked(ctx: Context): Boolean = isSet(ctx) && System.currentTimeMillis() < prefs(ctx).getLong("owner_until", 0L)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 
     fun logout(ctx: Context) { prefs(ctx).edit().putLong("owner_until", 0L).apply() }
 
@@ -41,6 +36,8 @@ object OwnerAuth {
         val p = prefs(ctx)
         val now = System.currentTimeMillis()
         if (!isSet(ctx)) {
+            // Only a phone that redeemed the owner code may create the owner passphrase.
+            if (Entitlements.plan(ctx) != "owner") return "Owner code first: redeem it in the plan screen, then set the passphrase"
             if (pass.length < 8) return "Choose a passphrase of at least 8 characters"
             val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
             p.edit().putString("owner_salt", enc(salt)).putString("owner_hash", enc(hash(pass, salt)))

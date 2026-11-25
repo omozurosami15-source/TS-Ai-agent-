@@ -4,10 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-<<<<<<< HEAD
-=======
 import android.graphics.LinearGradient
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 import android.graphics.Path
 import android.graphics.PathMeasure
 import android.graphics.RadialGradient
@@ -28,15 +25,12 @@ class StageView(ctx: Context) : View(ctx) {
     var state = 0            // 0 ready, 1 listening, 2 speaking, 3 thinking
     var caption: String = ""
     var onNode: ((Int) -> Unit)? = null
-<<<<<<< HEAD
-=======
     /** False while a plan's real 3D object is shown in the middle instead of the dotted globe. */
     var showOrb = true
     val orbX: Float get() = cx
     val orbY: Float get() = cy
     val orbR: Float get() = rad
     private val nodeText = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.LEFT }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 
     private val d = resources.displayMetrics.density
     private val nodes = listOf(
@@ -78,22 +72,12 @@ class StageView(ctx: Context) : View(ctx) {
     private fun withAlpha(c: Int, a: Int) = (c and 0xFFFFFF) or (a shl 24)
 
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
-<<<<<<< HEAD
-        cx = w * 0.62f
-        cy = h * 0.46f
-=======
         cx = w * 0.64f
         cy = h * 0.47f
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         rad = min(h * 0.27f, w * 0.20f)
         ring.reset()
         ring.addCircle(cx, cy, rad * 1.5f, Path.Direction.CW)
         ringLen = (2.0 * Math.PI * rad * 1.5f).toFloat()
-<<<<<<< HEAD
-        for (i in nodes.indices) {
-            val top = h * 0.10f + i * (h * 0.21f)
-            rects[i].set(2 * d, top, 92 * d, top + 32 * d)
-=======
         val bh = (h * 0.165f).coerceIn(34f * d, 58f * d)
         val gap = bh * 0.22f
         val top0 = h * 0.03f
@@ -102,7 +86,6 @@ class StageView(ctx: Context) : View(ctx) {
         for (i in nodes.indices) {
             val top = top0 + i * (bh + gap)
             rects[i].set(2 * d, top, 2 * d + bw, top + bh)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             val sx = rects[i].right
             val sy = rects[i].centerY()
             val ang = atan2(sy - cy, sx - cx)
@@ -116,16 +99,6 @@ class StageView(ctx: Context) : View(ctx) {
     }
 
     override fun onDraw(c: Canvas) {
-<<<<<<< HEAD
-        // the developer name, drawn under the SOUL button (where the big SETTINGS button used to be)
-        rects.getOrNull(2)?.let { r ->
-            val d = resources.displayMetrics.density
-            val tp = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.argb(210, 255, 176, 46)
-                textSize = 11f * d; typeface = android.graphics.Typeface.MONOSPACE
-            }
-            c.drawText("dev Tarek4x", r.left, r.bottom + 16 * d, tp)
-=======
         // developer pill under the SOUL button
         rects[3].let { r ->
             paint.style = Paint.Style.FILL; paint.shader = null
@@ -143,9 +116,11 @@ class StageView(ctx: Context) : View(ctx) {
             paint.style = Paint.Style.FILL; paint.color = 0xFFFFC21F.toInt()
             c.drawPath(crown, paint)
             nodeText.textSize = (r.height() * 0.42f).coerceAtMost(15f * d)
+            val devX = r.left + 42f * d
+            val devRoom = r.right - devX - 10f * d
+            while (nodeText.measureText("dev Tarek4x") > devRoom && nodeText.textSize > 8f * d) nodeText.textSize -= 0.5f * d
             nodeText.color = 0xFFFFE2A0.toInt()
-            c.drawText("dev Tarek4x", r.left + 44f * d, r.centerY() + nodeText.textSize * 0.35f, nodeText)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
+            c.drawText("dev Tarek4x", devX, r.centerY() + nodeText.textSize * 0.35f, nodeText)
         }
         t += 0.016f
         val target = when (state) {
@@ -192,23 +167,6 @@ class StageView(ctx: Context) : View(ctx) {
             }
         }
 
-<<<<<<< HEAD
-        // menu nodes
-        text.textSize = 10.5f * d
-        for (i in nodes.indices) {
-            val r = rects[i]
-            paint.style = Paint.Style.FILL
-            paint.color = 0xDD02100A.toInt()
-            c.drawRoundRect(r, 6 * d, 6 * d, paint)
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 1.2f * d
-            paint.color = nodes[i].second
-            c.drawRoundRect(r, 6 * d, 6 * d, paint)
-            text.color = nodes[i].second
-            c.drawText(nodes[i].first, r.centerX(), r.centerY() + text.textSize * 0.35f, text)
-        }
-
-=======
         // menu nodes: neon buttons with an icon, a name and an arrow
         for (i in nodes.indices) {
             val r = rects[i]
@@ -254,7 +212,6 @@ class StageView(ctx: Context) : View(ctx) {
         val arcLen = (arcR * 130f * Math.PI / 180.0).toFloat()
         c.drawTextOnPath(title, arc, ((arcLen - ringPaint.measureText(title)) / 2f).coerceAtLeast(0f), 0f, ringPaint)
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         // orbit rings
         for (k in 0..2) {
             c.save()
@@ -286,11 +243,7 @@ class StageView(ctx: Context) : View(ctx) {
         val tilt = 0.4f
         val ct = cos(tilt); val st = sin(tilt)
         paint.style = Paint.Style.FILL
-<<<<<<< HEAD
-        for (p in pts) {
-=======
         if (showOrb) for (p in pts) {
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             val x1 = p[0] * ca + p[2] * sa
             val z1 = -p[0] * sa + p[2] * ca
             val y2 = p[1] * ct - z1 * st
@@ -342,13 +295,6 @@ class StageView(ctx: Context) : View(ctx) {
 
         // labels
         paint.style = Paint.Style.FILL
-<<<<<<< HEAD
-        val baseY = min(cy + rad * 1.72f, h - 24 * d)
-        text.textSize = 12f * d
-        text.letterSpacing = 0.2f
-        text.color = cur
-        c.drawText(labels[state], cx, baseY, text)
-=======
         val baseY = min(cy + rad * 1.62f, h - 22 * d)
         text.textSize = 16f * d
         text.letterSpacing = 0.12f
@@ -363,7 +309,6 @@ class StageView(ctx: Context) : View(ctx) {
             val bx = if (side == 0) cx - lw / 2f - 12f * d - k * 6f * d else cx + lw / 2f + 8f * d + k * 6f * d
             c.drawRoundRect(RectF(bx, baseY - bhh, bx + 3.4f * d, baseY), 1.5f * d, 1.5f * d, paint)
         }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         if (caption.isNotBlank()) {
             text.textSize = 11f * d
             text.letterSpacing = 0f
@@ -375,8 +320,6 @@ class StageView(ctx: Context) : View(ctx) {
         postInvalidateOnAnimation()
     }
 
-<<<<<<< HEAD
-=======
     private fun drawNodeIcon(c: Canvas, kind: Int, cx: Float, cy: Float, size: Float, col: Int) {
         val u = size / 30f
         paint.style = Paint.Style.STROKE; paint.strokeWidth = 2.2f * u; paint.color = col
@@ -409,7 +352,6 @@ class StageView(ctx: Context) : View(ctx) {
         paint.style = Paint.Style.FILL
     }
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     override fun onTouchEvent(e: MotionEvent): Boolean {
         val hit = rects.indexOfFirst { RectF(it.left - 6 * d, it.top - 6 * d, it.right + 6 * d, it.bottom + 6 * d).contains(e.x, e.y) }
         if (hit < 0) return false

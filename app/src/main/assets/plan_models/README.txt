@@ -1,10 +1,3 @@
-Put your own 3D models here, one per plan:
-  plan_01.glb  plan_02.glb  ...  plan_17.glb
-If a file exists, the app shows that model for the plan (on Home and in the plan screen).
-If not, the built-in 3D scene is used.
-
-Supported:  binary glTF (.glb), meshes, node transforms, base colour, emissive colour, alpha (BLEND).
-Not supported: textures, skins/rigging, glTF animations, Draco or meshopt compression
-               (export with "no compression"), more than 65000 vertices in one mesh.
-Tip: Blender > File > Export > glTF 2.0 > format "glTB Binary (.glb)", Compression off, Apply Modifiers on.
-The model is centred and scaled to fit automatically; it spins slowly and reacts to the AI state.
+TS Agent plan models
+plan_01.glb ... plan_17.glb correspond to PlanCatalog plan numbers and plan_designs/plan_01.png ... plan_17.png.
+Models are texture-free GLB, accent-emissive with dark structural materials, centered and fitted within a 2x2x2 box. Each model is below 60,000 vertices. Plan3DView loads these models by selected plan number and falls back to procedural geometry if a model is unavailable.

@@ -4,11 +4,7 @@
 const CFG = {
   OWNER_NAME: 'Tarek', OWNER_CONTACT: '+8801622058034', TELEGRAM_URL: 'https://t.me/ts_official_top',
   GITHUB_REPO: 'OWNER/REPO',
-<<<<<<< HEAD
-  SERVER: '',                     // <- your TS Cloud server, for example 'https://api.yourdomain.com' (no trailing slash)      // <- your repo, for example 'tarek/ts-agent'
-=======
   SERVER: '../../backend',       // Same-host PHP backend. Replace with your API base URL if hosted elsewhere (no trailing slash).
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   ALL_FREE: false, BUY_URL: 'https://t.me/ts_official_top', DEFAULT_LANG: 'en-US'
 };
 const HAS_DOM = typeof document !== 'undefined';
@@ -68,20 +64,15 @@ const Plan = {
   isOwner: () => Plan.get() === 'owner' && Owner.unlocked(),
   companion: () => CFG.ALL_FREE || ['p1', 'p2', 'owner'].includes(Plan.get()),
   premium: () => CFG.ALL_FREE || ['p2', 'owner'].includes(Plan.get()),
-<<<<<<< HEAD
-=======
   // each of the 17 premium plans is unlocked separately by its own code (stored as {moduleId: untilTime})
   modules() { try { return JSON.parse(store.get('modules', '{}')) || {}; } catch (e) { return {}; } },
   hasModule(id) { if (CFG.ALL_FREE || Plan.get() === 'owner') return true; const u = Plan.modules()[id]; return u !== undefined && (u === 0 || Date.now() < u); },
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   label() {
     const p = Plan.get(), u = Number(store.get('plan_until', '0'));
     const n = { p1: 'PLAN 1', p2: 'PLAN 2', owner: 'OWNER' }[p] || 'FREE';
     return !p || p === 'owner' || u === 0 ? n : n + ' until ' + new Date(u).toISOString().slice(0, 10);
   }
 };
-<<<<<<< HEAD
-=======
 
 // Paid subscription plans 2–18 map to the 17 supplied plan artworks 01–17.
 // Free plan (id 1) keeps the original MISS SARA Matrix home screen.
@@ -123,7 +114,6 @@ async function refreshCloudPlanArtwork() {
   applyPlanArtwork(local === 'p1' ? 2 : local === 'p2' ? 3 : 1, local ? Plan.label() : 'Free', 'local');
 }
 function badgePlanStatus(){ return !!document.getElementById('center')?.dataset.activePlan; }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 async function redeem(raw) {
   const code = normCode(raw);
   if (code.length < 12) return 'That code is not valid.';
@@ -132,10 +122,6 @@ async function redeem(raw) {
   const c = (book.coupons || []).find(x => x.h === h);
   if (!c) return 'That code is not valid.';
   if ((book.revoked || []).includes(c.id)) return 'That code has been withdrawn.';
-<<<<<<< HEAD
-  store.set('plan', c.plan); store.set('plan_code_id', c.id);
-  store.set('plan_until', c.days === 0 ? 0 : Date.now() + c.days * 86400000);
-=======
   if (String(c.plan).startsWith('module:')) {
     const mid = c.plan.slice(7), mod = PREMIUM_MODULES.find(x => x.id === mid);
     if (!mod) return 'That code is not valid.';
@@ -146,7 +132,6 @@ async function redeem(raw) {
   store.set('plan', c.plan); store.set('plan_code_id', c.id);
   store.set('plan_until', c.days === 0 ? 0 : Date.now() + c.days * 86400000);
   applyPlanArtwork(c.plan === 'p1' ? 2 : c.plan === 'p2' ? 3 : 1, Plan.label(), 'local');
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   return 'Activated: ' + Plan.label();
 }
 
@@ -247,11 +232,7 @@ const LLM = {
       return j.text || '';
     }
     if (p === 'anthropic') {
-<<<<<<< HEAD
-      const body = { model, max_tokens: search ? 900 : 700, system, messages: [{ role: 'user', content: prompt }] };
-=======
       const body = { model, max_tokens: search ? 1800 : 1400, system, messages: [{ role: 'user', content: prompt }] };
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
       if (search) body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }];
       r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('AI error ' + r.status + ': ' + (await r.text()).slice(0, 160));
@@ -269,8 +250,6 @@ const LLM = {
     j = await r.json(); const c = j.choices[0].message.content;
     return Array.isArray(c) ? c.map(x => x.text || '').join('') : String(c || '');
   },
-<<<<<<< HEAD
-=======
   async analyzeImage(system, prompt, dataUrl) {
     const p = LLM.provider(), key = LLM.key(p), model = LLM.model(p);
     if (!LLM.configured()) throw new Error('Open SETTINGS and configure an AI provider, API key and model first.');
@@ -293,7 +272,6 @@ const LLM = {
     if(!r.ok) throw new Error('Vision API error '+r.status+': '+(await r.text()).slice(0,180));
     j=await r.json(); const c=j.choices?.[0]?.message?.content; return Array.isArray(c)?c.map(x=>x.text||'').join('\n'):String(c||'');
   },
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   async models() {
     const p = LLM.provider(), key = LLM.key(p); if (!key) throw new Error('Enter the key for ' + p.toUpperCase() + ' first');
     let r, j;
@@ -405,11 +383,7 @@ async function cloudAuth(action, email, password) {
   try {
     const r = await fetch(CFG.SERVER + '/api.php?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name: email.split('@')[0] }) });
     const j = await r.json().catch(() => ({})); if (!r.ok) return j.error || 'Error ' + r.status;
-<<<<<<< HEAD
-    store.set('svtoken', j.token); store.set('cloud_email', email); return 'Logged in to TS Cloud';
-=======
     store.set('svtoken', j.token); store.set('cloud_email', email); await refreshCloudPlanArtwork(); return 'Logged in to TS Cloud';
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   } catch (e) { return 'Network error: ' + e.message; }
 }
 const memory = () => (Owner.unlocked() ? store.get('memory') : '');
@@ -468,11 +442,7 @@ async function speak(text, lang) {
   stopSpeak();
   if (Eleven.configured()) { try { const a = await Eleven.speak(text); a.onplay = () => setState(2); a.onended = () => { if (state === 2) setState(0); }; await a.play(); return; } catch (e) {} }
   if (!('speechSynthesis' in window)) return;
-<<<<<<< HEAD
-  const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
-=======
   const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.rate = Math.max(0.75, Math.min(1.25, Number(store.get('voice_rate', '1')) || 1)); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 }
 function listen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -749,10 +719,6 @@ function tick() {
   const s = Math.floor((Date.now() - t0) / 1000), p = n => String(n).padStart(2, '0');
   $('sys').textContent = 'UPTIME ' + p(s / 3600 | 0) + ':' + p(s / 60 % 60 | 0) + ':' + p(s % 60) + ' | VOICE:' + voiceLang() + ' | OWNER:' + (!Owner.isSet() ? '-' : Owner.unlocked() ? 'ON' : 'LOCKED') + ' | PLAN:' + (Plan.get() || 'free').toUpperCase() + ' | COINS:' + (store.get('coins_text') || '-');
 }
-<<<<<<< HEAD
-async function init() {
-  startRain(); startStage(); boot(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
-=======
 /* ---------- premium multi-page navigation ---------- */
 const PREMIUM_MODULES = [
   {id:'neural',n:'NEURAL CORE',i:'✧',d:'Live AI brain, reasoning state and processing visualization.',f:['AI status and model identity','Request lifecycle and response timing','Context-aware assistant routing']},
@@ -878,7 +844,6 @@ function initPremiumNavigation(){
 
 async function init() {
   startRain(); startStage(); boot(); initPremiumNavigation(); refreshCloudPlanArtwork(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   $('lang').textContent = voiceLang().split('-')[0].toUpperCase(); $('lang').onclick = () => say('Voice language: ' + toggleLang());
   $('mic').onclick = listen; $('abort').onclick = abortAll; $('send').onclick = () => { const v = $('chat').value; $('chat').value = ''; submit(v); };
   $('chat').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('send').click(); });
@@ -890,8 +855,6 @@ async function init() {
 }
 if (HAS_DOM) window.addEventListener('DOMContentLoaded', init);
 if (typeof module !== 'undefined') module.exports = { parseCommand, packCompile, packCanonical, parseSlots, normCode, sha256hex, memLinks, store, Plan, Owner, redeem, CFG };
-<<<<<<< HEAD
-=======
 
 /* ---------- signal scan radar (home, like the Android app) ---------- */
 (function radar(){
@@ -911,4 +874,3 @@ if (typeof module !== 'undefined') module.exports = { parseCommand, packCompile,
   }
   draw();
 })();
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb

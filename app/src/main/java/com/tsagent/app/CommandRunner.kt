@@ -172,17 +172,15 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
                 val items = Headlines.fetch(act, 5)
                 val msg = if (items.isEmpty()) "Could not load the news right now"
                 else items.mapIndexed { i, h -> "${i + 1}. ${h.title}" }.joinToString("\n")
-                Handler(Looper.getMainLooper()).post { say(msg); Agent.onSpeak?.invoke(msg.take(400), null) }
+                Handler(Looper.getMainLooper()).post { say(msg); Agent.onSpeak?.invoke(msg, null) }
             }.start()
             return
         }
         val routine = Routines.handle(act, t, say)
-        if (routine != null) { say(routine); Agent.onSpeak?.invoke(routine.take(240), null); return }
+        if (routine != null) { say(routine); Agent.onSpeak?.invoke(routine, null); return }
         val local = LocalBrain.handle(act, t)
-        if (local != null) { say(local); Agent.onSpeak?.invoke(local.take(240), null); return }
+        if (local != null) { say(local); Agent.onSpeak?.invoke(local, null); return }
         when {
-<<<<<<< HEAD
-=======
             // A task is running and the user asks something else: answer the question, the task keeps going.
             Agent.running && l in setOf("থামো", "থামাও", "বাদ দাও", "cancel", "বন্ধ করো") -> { Agent.cancelled = true; say("Stopped the task.") }
             Regex("(?i)^(what |how |why |when |where |who |is |are |can |do |does )|^(কী|কি|কেন|কখন|কোথায়|কে|কত|কেমন|তুমি কি|তুমি কী)|\\?$").containsMatchIn(t) &&
@@ -192,7 +190,6 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
                 } catch (e: Exception) { "Could not answer right now." }
                 say(answer)
             }.start()
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             l == "stop" -> { Agent.cancelled = true; SongPlayer.stop(); Autoplay.stop(); say("Stopping...") }
             l.startsWith("keyset ") -> {
                 prefs.edit().putString("apikey", t.substring(7).trim()).apply()
@@ -218,8 +215,6 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
             l == "back" -> withService { it.back(); say("Back") }
             l == "home" -> withService { it.home(); say("Home") }
             l == "scroll" -> withService { it.scrollDown(); say("Scroll") }
-<<<<<<< HEAD
-=======
             // Writing only (no phone control): a post or caption is written well and copied to the clipboard.
             !Agent.running && Llm.configured(act) && Regex("(?i)^(write (a )?(post|caption)|post |caption |পোস্ট|ক্যাপশন)").containsMatchIn(t) -> Thread {
                 val text = try {
@@ -339,7 +334,6 @@ class CommandRunner(private val act: Context, private val say: (String) -> Unit)
                 val city = t.substringAfter(" ").trim()
                 say(Weather.report(city))
             }.start()
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             l.startsWith("ai ") -> Agent(act, say).start(t.substring(3))
             Llm.configured(act) -> Agent(act, say).start(original)
             else -> say("Unknown command. Try: open youtube, scroll down, share latest video to youtube, set timer 5 minutes, run <routine>. For free-form tasks add an AI key in SETTINGS.")

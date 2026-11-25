@@ -22,8 +22,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * Real-time 3D for the 17 plans (OpenGL ES 2.0). No photos: every plan is a 3D scene built from lit meshes
- * (sphere, torus, box, cylinder, gears...) with its own animation, in front of an animated shader backdrop.
+ * Real-time 3D for the 17 plans (OpenGL ES 2.0). Each plan loads its matching texture-free GLB model
+ * from assets/plan_models, with procedural geometry retained as a fallback and an animated shader backdrop.
  *
  *  - setPlan(1..17)         which plan scene to show
  *  - setMode(0..3)          the AI state: 0 ready, 1 listening, 2 speaking, 3 thinking (the scene reacts to it)
@@ -947,7 +947,9 @@ private class Plan3DRenderer : GLSurfaceView.Renderer {
         val target = when (mode) { 1 -> .45f; 2 -> 1f; 3 -> .7f; else -> 0f }
         burst = maxOf(0f, burst - dt * 1.4f)
         energy += (target + burst * .8f - energy) * minOf(1f, dt * 4f)
-        yaw += dt * (14f + 40f * energy)
+        // All 17 plan models use a deterministic five-second visual loop: one full turn
+        // plus a restrained scale pulse. The loop is independent of AI state so it repeats cleanly.
+        yaw = (t % 5f) * 72f
 
         if (backdrop && bgProg != 0) drawBackdrop(t)
 
@@ -965,13 +967,11 @@ private class Plan3DRenderer : GLSurfaceView.Renderer {
         Matrix.multiplyMM(proj2, 0, adj, 0, proj, 0)
         Matrix.multiplyMM(pv, 0, proj2, 0, view, 0)
 
-        val bob = .04f * sin(t * 1.6f)
-        val sc = 1f + .03f * energy * sin(t * 9f) + burst * .1f
+        val pulse = 1f + .025f * sin((t % 5f) * (2f * PIF / 5f)) + burst * .06f
         Matrix.setIdentityM(g, 0)
-        Matrix.translateM(g, 0, 0f, bob, 0f)
         Matrix.rotateM(g, 0, 14f, 1f, 0f, 0f)
         Matrix.rotateM(g, 0, yaw + dragYaw, 0f, 1f, 0f)
-        Matrix.scaleM(g, 0, sc, sc, sc)
+        Matrix.scaleM(g, 0, pulse, pulse, pulse)
 
         GLES20.glUseProgram(prog)
         GLES20.glEnableVertexAttribArray(aPos)

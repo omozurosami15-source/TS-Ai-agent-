@@ -1,5 +1,6 @@
 package com.tsagent.app
 
+import android.text.SpannableStringBuilder
 import android.app.Activity
 import android.animation.ValueAnimator
 import android.app.AlertDialog
@@ -341,7 +342,10 @@ class PlanDashboardActivity : Activity() {
             val selected = i == current
             val unlocked = Entitlements.isPlanActive(this, "p$i")
             val b = TextView(this).apply {
-                text = "P$i" + (if (unlocked) " ●" else "") + (if (i == default && unlocked) " ★" else "")
+                text = SpannableStringBuilder("P$i").apply {
+                    if (unlocked) { append(" "); append(Glyphs.span(this@PlanDashboardActivity, Glyphs.DOT, 0xFF8AF4C9.toInt())) }
+                    if (i == default && unlocked) { append(" "); append(Glyphs.span(this@PlanDashboardActivity, Glyphs.STAR, 0xFFFFC21F.toInt())) }
+                }
                 textSize = 12f; gravity = Gravity.CENTER
                 setTextColor(if (selected) Color.BLACK else if (unlocked) 0xFF8AF4C9.toInt() else 0xFFB8D3E0.toInt())
                 background = GradientDrawable().apply {

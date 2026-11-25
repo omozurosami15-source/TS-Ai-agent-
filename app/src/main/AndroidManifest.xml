@@ -5,10 +5,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-<<<<<<< HEAD
-=======
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -17,23 +14,15 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
-<<<<<<< HEAD
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
-=======
     <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
 
     <queries>
-<<<<<<< HEAD
-        <intent><action android:name="android.speech.RecognitionService" /></intent>
-        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
-=======
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
@@ -41,7 +30,6 @@
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
         <package android:name="com.termux" />
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     </queries>
 
     <application
@@ -56,11 +44,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".TestActivity" android:exported="false" />
-<<<<<<< HEAD
-=======
         <activity android:name=".PlanDashboardActivity" android:exported="false" />
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         <service
             android:name=".AgentService"
             android:exported="true"
@@ -73,20 +58,14 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_config" />
         </service>
-<<<<<<< HEAD
-=======
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         <receiver android:name=".ReminderReceiver" android:exported="false" />
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-<<<<<<< HEAD
-=======
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         <service
             android:name=".AssistantService"
             android:exported="false"
@@ -107,8 +86,6 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="user-enabled companion that looks at the screen and cameras and speaks, with a permanent notification" />
         </service>
-<<<<<<< HEAD
-=======
         <service
             android:name=".ScamListener"
             android:exported="true"
@@ -126,6 +103,5 @@
         </receiver>
         <receiver android:name=".AlarmRing" android:exported="false" />
         <receiver android:name=".DailyJobRing" android:exported="false" />
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     </application>
 </manifest>

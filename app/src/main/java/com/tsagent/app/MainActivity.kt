@@ -1,11 +1,8 @@
 package com.tsagent.app
 
-<<<<<<< HEAD
-=======
 import java.io.File
 
 import android.animation.ValueAnimator
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
@@ -48,11 +45,14 @@ import java.util.Locale
 class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var stage: StageView
-<<<<<<< HEAD
-=======
     private lateinit var plan3d: Plan3DView
+    private var reviewBtn: TextView? = null
+    private var reviewLayer: View? = null
+    private var reviewView: Plan3DView? = null
+    private var setupWizard: SetupWizard? = null
+    /** Home parts that an active plan hides (status strip, terminal, radar/tasks). */
+    private var homeMid: List<View> = emptyList()
     private lateinit var planThemeLabel: TextView
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     private lateinit var mic: MicView
     private lateinit var transcript: TextView
     private lateinit var transcriptScroll: ScrollView
@@ -60,17 +60,10 @@ class MainActivity : Activity() {
     private var titleView: GlitchTitle? = null
     /** True while the user wants the app to keep listening; only the mic button turns it off. */
     private var keepListening = false
-<<<<<<< HEAD
-    /** Errors in a row while listening; a few are retried, then listening stops with a message. */
-    private var errStreak = 0
-    private lateinit var sysLine: TextView
-    private lateinit var tasksText: TextView
-=======
     /** True while the recognizer is actually open, so two listeners never run at the same time. */
     private var listening = false
     private lateinit var statusPanel: StatusPanel
     private lateinit var tasksText: TasksPanel
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     private lateinit var newsText: TextView
     private lateinit var chatRow: LinearLayout
     private lateinit var input: EditText
@@ -80,13 +73,14 @@ class MainActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("cfg", Context.MODE_PRIVATE) }
     private val buf = SpannableStringBuilder()
-<<<<<<< HEAD
-    private val speakHandler: (String, String?) -> Unit = { t, l -> speak(t, l) }
-=======
     private var pendingAttachment: File? = null
     private var planMode = false
     private var lastSpoken = ""
     private var lastSpokenAt = 0L
+    private var page: PageLayer? = null
+    private var lastReply = ""
+    private var nextHistType: String? = null
+    private var nextHistTitle: String? = null
 
     /** Removes pet words such as "jaan" from replies, so they are neither shown nor spoken. */
     fun cleanReply(text: String): String =
@@ -110,7 +104,6 @@ class MainActivity : Activity() {
     }
 
     private val speakHandler: (String, String?) -> Unit = { t, l -> speakOnce(t, l) }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     private val t0 = System.currentTimeMillis()
     private val mono = Typeface.MONOSPACE
 
@@ -142,24 +135,16 @@ class MainActivity : Activity() {
             if (Agent.running && stage.state == 0) setState(3)
             else if (!Agent.running && stage.state == 3) setState(0)
             val on = AgentService.instance != null
-            online.text = if (on) "● ONLINE" else "● SETUP"
+            online.text = Glyphs.label(this@MainActivity, Glyphs.DOT, if (on) Theme.G else Theme.A, if (on) "ONLINE" else "SETUP")
             online.setTextColor(if (on) Theme.G else Theme.A)
             val s = (System.currentTimeMillis() - t0) / 1000
-<<<<<<< HEAD
-            sysLine.text = String.format(Locale.US, "UPTIME %02d:%02d:%02d | ACCESSIBILITY:%s | OWNER:%s | PLAN:%s | COINS:%s | COMPANION:%s",
-                s / 3600, s / 60 % 60, s % 60, if (on) "ON" else "OFF",
-                if (!OwnerAuth.isSet(this@MainActivity)) "-" else if (OwnerAuth.unlocked(this@MainActivity)) "ON" else "LOCKED",
-                Entitlements.plan(this@MainActivity).ifEmpty { "free" }.uppercase(Locale.US),
-                prefs.getString("coins_text", "-"),
-=======
             val dn = Entitlements.dashboardPlanNumber(this@MainActivity)
             val pl = Entitlements.plan(this@MainActivity)
             val planName = if (pl == "owner") "OWNER" else if (dn in 1..17) PlanCatalog.get(dn).name.uppercase(Locale.US)
                 else pl.ifEmpty { "free" }.uppercase(Locale.US)
             statusPanel.set(String.format(Locale.US, "%02d:%02d:%02d", s / 3600, s / 60 % 60, s % 60), on,
-                if (!OwnerAuth.isSet(this@MainActivity)) "-" else if (OwnerAuth.unlocked(this@MainActivity)) "ON" else "LOCKED",
+                if (!OwnerAuth.isSet(this@MainActivity)) "TAP TO SET" else if (OwnerAuth.unlocked(this@MainActivity)) "ON" else "LOCKED",
                 planName, prefs.getString("coins_text", "-") ?: "-",
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 if (prefs.getBoolean("comp_on", false) && OwnerAuth.unlocked(this@MainActivity)) "ON" else "OFF")
             main.postDelayed(this, 1000)
         }
@@ -297,6 +282,7 @@ class MainActivity : Activity() {
             try { crashFile.writeText(e.stackTraceToString().take(2500)) } catch (_: Exception) {}
             prevHandler?.uncaughtException(t, e)
         }
+        prefs.edit().putInt("sessions", prefs.getInt("sessions", 0) + 1).apply()
         window.statusBarColor = Theme.BG
         window.navigationBarColor = Theme.BG
 
@@ -305,80 +291,59 @@ class MainActivity : Activity() {
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), dp(34), dp(14), dp(12))
+            setPadding(dp(14), dp(22), dp(14), dp(12))
         }
         root.addView(content, FrameLayout.LayoutParams(-1, -1))
 
-<<<<<<< HEAD
-        // header
-        val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val gt = GlitchTitle(this, "MISS SARA")
-        titleView = gt
-        header.addView(gt, LinearLayout.LayoutParams(0, -2, 1f))
-        online = TextView(this).apply {
-            textSize = 11f; typeface = mono; setPadding(dp(10), dp(4), dp(10), dp(4)); background = card(Theme.DIM)
-        }
-        val settingsTop = TextView(this).apply {
-            text = "⚙ SETTINGS"; typeface = mono; textSize = 11f; setTextColor(Theme.A)
-            setPadding(dp(8), dp(4), dp(8), dp(4))
-            background = GradientDrawable().apply { setStroke(dp(1), Theme.A); cornerRadius = dp(8).toFloat() }
-            setOnClickListener { showSettings() }
-        }
-        pressFx(settingsTop)
-        header.addView(settingsTop, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
-        header.addView(online)
-        content.addView(header)
-        sysLine = TextView(this).apply { textSize = 11f; typeface = mono; setTextColor(Theme.DIM) }
-        content.addView(sysLine)
-
-        // terminal transcript
-        transcript = TextView(this).apply { setTextColor(Theme.TX); textSize = 12.5f; typeface = mono; setLinkTextColor(Theme.C); movementMethod = LinkMovementMethod.getInstance() }
-        transcriptScroll = ScrollView(this).apply {
-            background = card(0x8800FF9C.toInt())
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            addView(transcript)
-        }
-        content.addView(transcriptScroll, LinearLayout.LayoutParams(-1, dp(120)).apply { topMargin = dp(8) })
-
-        // animated stage
-=======
         // ===== Home screen (follows the Figma design) =====
         // header: photo, name, tagline, SETTINGS and SETUP
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        header.addView(AvatarView(this), LinearLayout.LayoutParams(dp(66), dp(78)).apply { marginEnd = dp(6) })
+        header.addView(AvatarView(this), LinearLayout.LayoutParams(dp(74), dp(74)).apply { marginEnd = dp(8) })
         val titleCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val gt = GlitchTitle(this, "MISS SARA")
         titleView = gt
         titleCol.addView(gt)
         titleCol.addView(TextView(this).apply {
-            val sp = SpannableStringBuilder("Your AI Assistant ♥")
+            val sp = SpannableStringBuilder("Your AI Assistant ").append(Glyphs.span(this@MainActivity, Glyphs.HEART, Theme.M))
             sp.setSpan(ForegroundColorSpan(Theme.M), sp.length - 1, sp.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            text = sp; textSize = 13f; setTextColor(Theme.C); typeface = Typeface.DEFAULT_BOLD
+            text = sp; textSize = 12.5f; setTextColor(Theme.C); typeface = Typeface.DEFAULT_BOLD; maxLines = 1
         })
         header.addView(titleCol, LinearLayout.LayoutParams(0, -2, 1f))
         val btnBox = LinearLayout(this).apply {
-            gravity = Gravity.CENTER; setPadding(dp(8), dp(8), dp(8), dp(8))
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER; setPadding(dp(6), dp(6), dp(6), dp(6))
             background = NeonBg(Theme.G, 0xCC03120C.toInt(), 8f)
         }
-        fun hdrBtn(label: String, color: Int, run: () -> Unit): TextView {
+        fun hdrBtn(label: CharSequence, color: Int, run: () -> Unit): TextView {
             val v = TextView(this@MainActivity).apply {
                 text = label; typeface = Typeface.DEFAULT_BOLD; textSize = 12f; setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER; setPadding(dp(10), dp(8), dp(10), dp(8))
+                gravity = Gravity.CENTER; setPadding(dp(10), dp(7), dp(10), dp(7)); maxLines = 1
                 background = NeonBg(color, 0xDD02100A.toInt(), 7f, 1.4f)
                 setOnClickListener { run() }
             }
             pressFx(v)
             return v
         }
-        btnBox.addView(hdrBtn("⚙  SETTINGS", Theme.C) { showSettings() }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(4) })
-        btnBox.addView(hdrBtn("🚀  SETUP", Theme.M) { showSetup() })
+        btnBox.addView(hdrBtn(Glyphs.label(this@MainActivity, Glyphs.GEAR, Theme.C, "SETTINGS"), Theme.C) { showSettings() }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
+        val setupBtn = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
+            setPadding(dp(10), dp(5), dp(10), dp(5))
+            background = NeonBg(Theme.M, 0xDD02100A.toInt(), 7f, 1.4f)
+            setOnClickListener { openSetupWizard() }
+        }
+        setupBtn.addView(RocketIconView(this), LinearLayout.LayoutParams(dp(22), dp(22)).apply { marginEnd = dp(7) })
+        setupBtn.addView(TextView(this).apply {
+            text = "SETUP"; typeface = Typeface.DEFAULT_BOLD; textSize = 12f; setTextColor(Color.WHITE); maxLines = 1
+        })
+        pressFx(setupBtn)
+        btnBox.addView(setupBtn, LinearLayout.LayoutParams(-1, -2))
         header.addView(btnBox)
         content.addView(header)
         // the old "online" badge is kept (it feeds ACCESSIBILITY in the status strip)
         online = TextView(this)
 
         // system strip
-        statusPanel = StatusPanel(this).apply { onCell = { i -> if (i == 3) openPlanDashboard() } }
+        statusPanel = StatusPanel(this).apply { onCell = { i -> if (i == 3) openPlanDashboard(); if (i == 2) showOwnerDialog() } }
         content.addView(statusPanel, LinearLayout.LayoutParams(-1, dp(76)).apply { topMargin = dp(6) })
 
         // terminal transcript + AI CORE badge
@@ -397,12 +362,18 @@ class MainActivity : Activity() {
         val stageFrame = FrameLayout(this)
         plan3d = Plan3DView(this).apply { visibility = View.GONE; setBackdrop(true) }
         stageFrame.addView(plan3d, FrameLayout.LayoutParams(-1, -1))
+        reviewBtn = TextView(this).apply {
+            text = "REVIEW  ›"; typeface = Typeface.DEFAULT_BOLD; textSize = 12f; setTextColor(Color.WHITE)
+            setPadding(dp(10), dp(6), dp(10), dp(6)); visibility = View.GONE
+            background = NeonBg(Theme.C, 0xDD02100A.toInt(), 8f, 1.4f)
+            setOnClickListener { openPlanReview() }
+        }
+        stageFrame.addView(reviewBtn, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(8); marginStart = dp(8) })
         planThemeLabel = TextView(this).apply {
             textSize = 9f; typeface = mono; setTextColor(Theme.C)
             setPadding(dp(7), dp(4), dp(7), dp(4)); alpha = 0f
             background = GradientDrawable().apply { setColor(0xAA00120C.toInt()); setStroke(dp(1), Theme.C); cornerRadius = dp(5).toFloat() }
         }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         stage = StageView(this)
         stage.onNode = { i ->
             when (i) {
@@ -412,19 +383,10 @@ class MainActivity : Activity() {
                 else -> showSettings()
             }
         }
-<<<<<<< HEAD
-        content.addView(stage, LinearLayout.LayoutParams(-1, 0, 1f))
-
-        // tasks
-        tasksText = TextView(this).apply {
-            setTextColor(Theme.TX); textSize = 11f; typeface = mono
-            background = card(Theme.DIM)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-=======
         stageFrame.addView(stage, FrameLayout.LayoutParams(-1, -1))
         stageFrame.addView(planThemeLabel, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply { topMargin = dp(8); marginEnd = dp(8) })
         val abortChip = TextView(this).apply {
-            text = "■ ABORT"; setTextColor(Theme.RED); textSize = 11f; typeface = mono
+            text = Glyphs.label(this@MainActivity, Glyphs.SQUARE, Theme.RED, "ABORT"); setTextColor(Theme.RED); textSize = 11f; typeface = mono
             setPadding(dp(10), dp(5), dp(10), dp(5)); background = NeonBg(Theme.RED, 0xCC1A0509.toInt(), 6f, 1.2f)
             setOnClickListener { stopAll() }
         }
@@ -432,31 +394,14 @@ class MainActivity : Activity() {
         stageFrame.addView(abortChip, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.END).apply { bottomMargin = dp(2); marginEnd = dp(2) })
         stageFrame.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> placePlan3d() }
         content.addView(stageFrame, LinearLayout.LayoutParams(-1, 0, 1f))
-        applyPurchasedPlanHome()
 
         // SIGNAL SCAN + TODAY.TASKS
         tasksText = TasksPanel(this).apply {
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             setOnClickListener { editNote("TODAY.TASKS // one per line, put ✓ at the start when done", "tasks", "") }
         }
         newsText = TextView(this).apply {
             setTextColor(Theme.TX); textSize = 11f; typeface = mono; setLinkTextColor(Theme.C)
             movementMethod = LinkMovementMethod.getInstance()
-<<<<<<< HEAD
-            background = card(Theme.DIM)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            setOnClickListener { refreshNews() }
-        }
-        val bottom = LinearLayout(this)
-        newsText.visibility = View.GONE   // headlines box removed; the news text is kept hidden
-        bottom.addView(RadarPanel(this), LinearLayout.LayoutParams(0, dp(150), 1.15f).apply { marginEnd = dp(6) })
-        bottom.addView(newsText, LinearLayout.LayoutParams(0, -2, 0f).apply { width = 0 })
-        bottom.addView(tasksText, LinearLayout.LayoutParams(0, -2, 1f))
-        content.addView(bottom, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
-        pressFx(tasksText); pressFx(newsText)
-
-        // chat input
-=======
             setOnClickListener { refreshNews() }
         }
         val bottom = LinearLayout(this)
@@ -464,38 +409,16 @@ class MainActivity : Activity() {
         bottom.addView(tasksText, LinearLayout.LayoutParams(0, dp(132), 1f))
         content.addView(bottom, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
         pressFx(tasksText)
+        homeMid = listOf(statusPanel, termRow, bottom)
+        applyPurchasedPlanHome()
 
         // chat input (opened by the CHAT button)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         chatRow = LinearLayout(this).apply { visibility = View.GONE }
         input = EditText(this).apply {
             hint = "$ type a command..."; setTextColor(Theme.G); setHintTextColor(Theme.DIM); typeface = mono
         }
         chatRow.addView(input, LinearLayout.LayoutParams(0, -2, 1f))
         chatRow.addView(Button(this).apply {
-<<<<<<< HEAD
-            text = "EXEC"; typeface = mono
-            setOnClickListener { val t = input.text.toString(); input.setText(""); submit(t) }
-        })
-        pressFx(chatRow.getChildAt(1))
-        content.addView(chatRow)
-
-        // controls
-        val controls = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, dp(8), 0, 0) }
-        controls.addView(TextView(this).apply {
-            text = "[ ABORT ]"; setTextColor(Theme.RED); textSize = 12f; typeface = mono
-            gravity = Gravity.CENTER; background = card(Theme.RED)
-            setPadding(dp(14), dp(9), dp(14), dp(9)); setOnClickListener { stopAll() }
-        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(12); marginStart = dp(12) })
-        mic = MicView(this).apply {
-            setOnClickListener { if (keepListening || Agent.running) stopKeep() else { keepListening = prefs.getBoolean("auto_listen", true); listen() } }
-            setOnLongClickListener { show("AGENT", "Voice language: " + toggleVoiceLang()); true }
-        }
-        controls.addView(mic, LinearLayout.LayoutParams(dp(80), dp(80)))
-        controls.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).apply { marginStart = dp(12); marginEnd = dp(12) })
-        content.addView(controls)
-        pressFx(controls.getChildAt(0))   // ABORT
-=======
             text = "＋ FILE"; typeface = mono
             contentDescription = "Attach code, ZIP, photo or document"
             setOnClickListener { pickAssistantFile() }
@@ -525,10 +448,20 @@ class MainActivity : Activity() {
                 setOnClickListener { run() }
             }
             b.addView(icon, LinearLayout.LayoutParams(dp(32), dp(32)))
-            b.addView(TextView(this@MainActivity).apply {
+            val lbl = TextView(this@MainActivity).apply {
                 text = label; textSize = 10f; setTextColor(Color.WHITE); typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER; maxLines = 1
-            }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(1) })
+            }
+            b.addView(lbl, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(1) })
+            // shrink the label until it fits inside its button (so "VOICE MODE" never leaves the border)
+            val meas = android.graphics.Paint().apply { typeface = Typeface.DEFAULT_BOLD }
+            b.addOnLayoutChangeListener { _, l, _, r, _, _, _, _, _ ->
+                val room = (r - l) - dp(8).toFloat()
+                var sz = dp(10).toFloat()
+                meas.textSize = sz
+                while (sz > dp(6).toFloat() && meas.measureText(label) > room) { sz -= 0.5f; meas.textSize = sz }
+                if (lbl.textSize != sz) lbl.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sz)
+            }
             pressFx(b)
             return b
         }
@@ -538,18 +471,17 @@ class MainActivity : Activity() {
         }
         val nav = LinearLayout(this).apply { setPadding(0, dp(6), 0, 0) }
         val navLp = { LinearLayout.LayoutParams(0, dp(64), 1f).apply { marginEnd = dp(4) } }
-        nav.addView(navBtn("HOME", 0xFF2D8CFF.toInt(), NavIconView(this, 0, 0xFF5AA9FF.toInt()), true) { flashIn(stage) }, navLp())
-        nav.addView(navBtn("VOICE MODE", 0xFFD13CFF.toInt(), mic, false) { voiceToggle() }, navLp())
-        nav.addView(navBtn("AI TOOLS", 0xFF28E070.toInt(), NavIconView(this, 1, 0xFF3DF08A.toInt()), false) { openPlanDashboard() }, navLp())
-        nav.addView(navBtn("HISTORY", 0xFFFFA726.toInt(), NavIconView(this, 2, 0xFFFFB84D.toInt()), false) { showHistory() }, navLp())
-        nav.addView(navBtn("PROFILE", 0xFF22D3EE.toInt(), NavIconView(this, 3, 0xFF3FE0F5.toInt()), false) { showProfile() }, navLp().apply { marginEnd = 0 })
+        nav.addView(navBtn("HOME", 0xFF2D8CFF.toInt(), NavIconView(this, 0, 0xFF5AA9FF.toInt()), true) { openPage(Pg.NONE); flashIn(stage) }, navLp())
+        nav.addView(navBtn("VOICE MODE", 0xFFD13CFF.toInt(), mic, false) { openPage(Pg.VOICE) }, navLp())
+        nav.addView(navBtn("AI TOOLS", 0xFF28E070.toInt(), NavIconView(this, 1, 0xFF3DF08A.toInt()), false) { openPage(Pg.TOOLS) }, navLp())
+        nav.addView(navBtn("HISTORY", 0xFFFFA726.toInt(), NavIconView(this, 2, 0xFFFFB84D.toInt()), false) { openPage(Pg.HISTORY) }, navLp())
+        nav.addView(navBtn("PROFILE", 0xFF22D3EE.toInt(), NavIconView(this, 3, 0xFF3FE0F5.toInt()), false) { openPage(Pg.PROFILE) }, navLp().apply { marginEnd = 0 })
         content.addView(nav)
         content.addView(TextView(this).apply {
             text = "──────   TS Agent v16  •  Smart AI for You   ──────"
             textSize = 10.5f; setTextColor(Theme.C); gravity = Gravity.CENTER; typeface = Typeface.DEFAULT_BOLD
             setPadding(0, dp(6), 0, 0)
         })
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 
         // CRT overlay + boot sequence
         root.addView(ScanView(this), FrameLayout.LayoutParams(-1, -1))
@@ -572,11 +504,6 @@ class MainActivity : Activity() {
         setState(0)
         refreshTasks()
         show("AGENT", "System ready. Tap the mic and speak. First open SETTINGS to log in, grant permissions and add your own API key.")
-<<<<<<< HEAD
-        show("AGENT", "Updates and support: ${Config.TELEGRAM_URL}")
-
-        Agent.onSpeak = speakHandler
-=======
         
 
         // Sara Watch is OFF by default. One-time reset for phones where it was switched on before.
@@ -587,39 +514,33 @@ class MainActivity : Activity() {
 
         Agent.onSpeak = speakHandler
         keepListening = prefs.getBoolean("auto_listen", true)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         loadAccount()
         checkRemote()
         refreshNews()
         main.postDelayed(newsTick, 900000L)
         tts = TextToSpeech(this) { st ->
             if (st == TextToSpeech.SUCCESS) tts?.let { t ->
-<<<<<<< HEAD
-                t.setLanguage(Locale.forLanguageTag(voiceLang()))
-=======
                 applyVoice(t, voiceLang())
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(id: String?) { runOnUiThread { setState(2) } }
                     override fun onDone(id: String?) { runOnUiThread { setState(0); afterSpeak() } }
                     override fun onError(id: String?) { runOnUiThread { setState(0) } }
+                    // tts.stop() (barge-in, ABORT, stop) ends the utterance without onDone; without this the mic stayed stuck in SPEAKING
+                    override fun onStop(id: String?, interrupted: Boolean) { runOnUiThread { if (stage.state == 2) setState(0) } }
                 })
             }
         }
     }
 
     override fun onResume() {
+        setupWizard?.rebuild()
+        if (setupWizard == null && !prefs.getBoolean("setup_wizard_seen", false)) main.post { openSetupWizard() }
         super.onResume()
         trace("onResume")
-<<<<<<< HEAD
-        // The user came back to the app: a task still running in the background must not press Home or Back and kick them out.
-        if (Agent.running) { Agent.cancelled = true; show("AGENT", "Stopped the running task because you opened the app.") }
-=======
         if (::plan3d.isInitialized) { applyPurchasedPlanHome(); plan3d.onResume() }
         // The user came back to the app: a task still running in the background must not press Home or Back and kick them out.
         if (keepListening) listen()
         Security.showPending(this)?.let { show("SECURITY", it) }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         if (prefs.getBoolean("acc_lost", false) && AgentService.instance == null)
             show("AGENT", "Accessibility was turned off by Android. Turn it on again: SETTINGS > ENABLE ACCESSIBILITY.")
         try { resumeSafe() } catch (e: Throwable) { showStartupError(e) }
@@ -636,14 +557,10 @@ class MainActivity : Activity() {
     override fun onPause() {
         super.onPause()
         trace("onPause")
-<<<<<<< HEAD
-        try { pauseSafe() } catch (e: Throwable) { showStartupError(e) }
-=======
         if (::plan3d.isInitialized) plan3d.onPause()
         try { pauseSafe() } catch (e: Throwable) { showStartupError(e) }
         listening = false
         main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     }
 
     private fun pauseSafe() {
@@ -664,11 +581,7 @@ class MainActivity : Activity() {
         recognizer?.destroy()
     }
 
-<<<<<<< HEAD
-    private fun setState(s: Int) { stage.state = s; mic.active = (s == 1) }
-=======
     private fun setState(s: Int) { stage.state = s; mic.active = (s == 1); if (::plan3d.isInitialized) plan3d.setMode(s) }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 
     // ---- terminal transcript: typing animation + blinking cursor ----
     private var pending = ""
@@ -696,19 +609,12 @@ class MainActivity : Activity() {
         if (follow) transcriptScroll.post { transcriptScroll.fullScroll(View.FOCUS_DOWN) }
     }
 
-<<<<<<< HEAD
-    private fun show(who: String, text: String) {
-        main.removeCallbacks(typer)
-        if (pending.isNotEmpty()) { buf.append(pending); pending = "" }
-        val label = if (who == "YOU") "root@ts:~$ " else "[ts] "
-=======
     private fun show(who: String, raw: String) {
         val text = if (who == "AGENT") cleanReply(raw) else raw
         main.removeCallbacks(typer)
         if (pending.isNotEmpty()) { buf.append(pending); pending = "" }
         val label = if (who == "YOU") "root@ts:~$ " else "[ts] "
         if (who == "AGENT" && ::plan3d.isInitialized) plan3d.pulse()
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         val start = buf.length
         buf.append(label)
         buf.setSpan(ForegroundColorSpan(if (who == "YOU") Theme.G else Theme.C), start, buf.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -721,14 +627,6 @@ class MainActivity : Activity() {
         }
     }
 
-<<<<<<< HEAD
-    private fun submit(text: String) {
-        if (text.isBlank()) return
-        show("YOU", text)
-        CommandRunner(this) { s ->
-            if (s.startsWith("•")) stage.caption = s.removePrefix("•").trim() else show("AGENT", s)
-        }.run(text)
-=======
     /** In-app guide: what Miss Sara can do and how to use it. Opened by typing "guide". */
     fun showGuide() {
         val text = "What Miss Sara does:\n" +
@@ -741,6 +639,107 @@ class MainActivity : Activity() {
             "- Evidence: \"evidence save <note>\" keeps a note and screenshot on this phone only.\n\n" +
             "Tips: keep the phone on and connected. Keep Accessibility and Notifications on. Use headphones to stop it hearing its own voice."
         AlertDialog.Builder(this).setTitle("Guide").setMessage(text).setPositiveButton("OK", null).show()
+    }
+
+
+    // ---- full-screen pages (PROFILE, HISTORY, AI TOOLS, VOICE MODE) ----
+    /** Shows a page on top of Home. Pg.NONE goes back to Home. */
+    fun openPage(kind: Int) {
+        page?.let { root.removeView(it); it.dispose() }
+        page = null
+        if (kind == Pg.NONE) return
+        val p = PageLayer(this, kind)
+        page = p
+        root.addView(p, FrameLayout.LayoutParams(-1, -1))
+    }
+
+    override fun onBackPressed() {
+        if (setupWizard != null) closeSetupWizard()
+        else if (reviewLayer != null) closeReview()
+        else if (page != null) openPage(Pg.NONE)
+        else super.onBackPressed()
+    }
+
+    fun pgState(): Int = if (::stage.isInitialized) stage.state else 0
+    fun pgKeep(): Boolean = keepListening
+    fun pgLang(): String = voiceLang()
+    fun pgLastReply(): String = lastReply
+    fun pgVoiceToggle() { if (keepListening) stopKeep() else { keepListening = true; listen() } }
+    fun pgListenOnce() { if (!listening) listen() }
+    fun pgSpeakLast() { if (lastReply.isNotBlank()) speak(lastReply) else show("AGENT", "Nothing to speak yet.") }
+    fun pgToggleLang() { val l = toggleVoiceLang(); show("AGENT", "Voice language: $l") }
+    fun pgSettings() = showSettings()
+    fun pgOwner() = showOwnerDialog()
+    fun pgPlans() = openPlanDashboard()
+    fun pgFeed() { openPage(Pg.NONE); showFeed() }
+    fun pgNotif() {
+        try {
+            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+        } catch (e: Exception) { show("AGENT", "Could not open notification settings.") }
+    }
+
+    /** Closes the page, opens the chat box and puts the tool's starting words in it. */
+    fun pgTool(tool: String, prefix: String) {
+        if (tool.isNotEmpty()) { nextHistType = "tools"; nextHistTitle = tool }
+        openPage(Pg.NONE)
+        chatRow.visibility = View.VISIBLE
+        input.setText(prefix)
+        input.setSelection(input.text.length)
+        input.requestFocus()
+        try { (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).showSoftInput(input, 0) } catch (_: Exception) {}
+    }
+
+    fun pgPickFile() {
+        nextHistType = "tools"; nextHistTitle = "FILE ANALYZER"
+        openPage(Pg.NONE)
+        chatRow.visibility = View.VISIBLE
+        pickAssistantFile()
+    }
+
+    fun pgEditName() {
+        val et = EditText(this).apply {
+            setText(prefs.getString("user_name", "") ?: ""); hint = "Your name"
+            setTextColor(Theme.G); setHintTextColor(Theme.DIM); typeface = mono
+        }
+        val box = LinearLayout(this).apply { setPadding(dp(20), dp(8), dp(20), 0) }
+        box.addView(et, LinearLayout.LayoutParams(-1, -2))
+        AlertDialog.Builder(this).setTitle("Personal Information").setView(box)
+            .setPositiveButton("Save") { _, _ -> prefs.edit().putString("user_name", et.text.toString().trim()).apply(); openPage(Pg.PROFILE) }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    fun pgLogout() {
+        AlertDialog.Builder(this).setTitle("Logout").setMessage("Lock owner mode and sign out of your account on this phone?")
+            .setPositiveButton("Logout") { _, _ ->
+                OwnerAuth.logout(this)
+                prefs.edit().remove("svtoken").apply()
+                openPage(Pg.NONE)
+                show("AGENT", "Logged out. Open SETTINGS to log in again.")
+            }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    /** Tap OWNER on the status strip: set the passphrase the first time, unlock later, or lock again. */
+    private fun showOwnerDialog() {
+        if (OwnerAuth.unlocked(this)) {
+            AlertDialog.Builder(this).setTitle("OWNER MODE").setMessage("Owner mode is ON.")
+                .setPositiveButton("Close", null)
+                .setNegativeButton("Lock") { _, _ -> OwnerAuth.logout(this); show("AGENT", "Owner mode locked") }.show()
+            return
+        }
+        val first = !OwnerAuth.isSet(this)
+        val et = EditText(this).apply {
+            hint = if (first) "Choose a passphrase (8+ characters)" else "Owner passphrase"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            typeface = mono
+        }
+        val box = LinearLayout(this).apply { setPadding(dp(20), dp(8), dp(20), 0) }
+        box.addView(et, LinearLayout.LayoutParams(-1, -2))
+        AlertDialog.Builder(this).setTitle("OWNER MODE")
+            .setMessage(if (first) "First time: choose a passphrase. It is stored only as a salted hash on this phone." else "Enter your owner passphrase to unlock.")
+            .setView(box)
+            .setPositiveButton(if (first) "Set" else "Unlock") { _, _ -> show("AGENT", OwnerAuth.login(this, et.text.toString())) }
+            .setNegativeButton("Cancel", null).show()
     }
 
     /** First-time setup guide: what to add, where to get it. Shown once, and again by typing "setup". */
@@ -784,6 +783,9 @@ class MainActivity : Activity() {
         if (text.isBlank() && pendingAttachment == null) return
         val attachment = pendingAttachment
         val userText = text.ifBlank { "Please inspect the attached file and explain what it contains." }
+        val hType = nextHistType ?: "chat"
+        Hist.add(this, hType, nextHistTitle ?: (if (hType == "voice") "Voice Assistant" else "AI Chat"), userText)
+        nextHistType = null; nextHistTitle = null
         show("YOU", userText + (attachment?.let { "\\n[Attached: ${it.name}]" } ?: ""))
         val prompt = buildString {
             if (planMode) append("First create a short, easy-to-understand step-by-step plan. Then carry out the safe parts and verify the result.\\n\\n")
@@ -797,7 +799,7 @@ class MainActivity : Activity() {
         pendingAttachment = null
         planMode = false
         CommandRunner(this) { s ->
-            if (s.startsWith("•")) stage.caption = s.removePrefix("•").trim() else { show("AGENT", s); speakOnce(s) }
+            if (s.startsWith("•")) stage.caption = s.removePrefix("•").trim() else { show("AGENT", s); speakOnce(s); lastReply = cleanReply(s); Hist.addReply(this, cleanReply(s)) }
         }.run(prompt)
     }
 
@@ -882,7 +884,6 @@ class MainActivity : Activity() {
         } catch (e: Exception) {
             "Could not read attachment ${file.name}: ${e.message}"
         }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     }
 
     private fun voiceLangs(): List<String> =
@@ -898,6 +899,7 @@ class MainActivity : Activity() {
     }
 
     private fun speak(text: String, lang: String? = null) {
+        if (!SpeechGate.claim("main", text) { tts?.stop(); Voice.stop() }) return
         if (Voice.configured(this)) {
             Voice.speak(this, text, { setState(2) }, { if (stage.state == 2) setState(0); afterSpeak() }) { systemSpeak(text, lang) }
             return
@@ -905,10 +907,6 @@ class MainActivity : Activity() {
         systemSpeak(text, lang)
     }
 
-<<<<<<< HEAD
-    private fun systemSpeak(text: String, lang: String?) {
-        tts?.setLanguage(Locale.forLanguageTag(if (!lang.isNullOrBlank()) lang else voiceLang()))
-=======
     /** Picks the phone voice for the language. For Bangla it prefers Bangla (India), the voice you chose on the phone. */
     private fun applyVoice(t: TextToSpeech, tag: String) {
         val loc = Locale.forLanguageTag(tag)
@@ -944,7 +942,6 @@ class MainActivity : Activity() {
     private fun systemSpeak(text: String, lang: String?) {
         tts?.let { applyVoice(it, if (!lang.isNullOrBlank()) lang else voiceLang()) }
         // one utterance, one voice: the whole reply in the same voice (no chunks, so the voice does not change mid-reply)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ts")
     }
 
@@ -958,9 +955,6 @@ class MainActivity : Activity() {
     /** After a reply finishes, listen again so the conversation keeps going. */
     private fun afterSpeak() {
         if (!keepListening) return
-<<<<<<< HEAD
-        main.postDelayed({ if (keepListening && stage.state == 0) listen() }, 600)
-=======
         main.postDelayed({ if (keepListening) listen() }, 300)
     }
 
@@ -992,42 +986,27 @@ class MainActivity : Activity() {
         Agent.cancelled = true
         tts?.stop(); Voice.stop()
         if (stage.state == 2) setState(1)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     }
 
     /** Only the user turns listening off. */
     private fun stopKeep() {
         keepListening = false
         Agent.cancelled = true
-<<<<<<< HEAD
-=======
         listening = false
         tts?.stop(); Voice.stop()
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         main.post { recognizer?.cancel(); recognizer?.destroy(); recognizer = null }
         setState(0)
         show("AGENT", "Stopped. Tap the mic to talk again.")
     }
 
     private fun listen() {
-<<<<<<< HEAD
-=======
         if (listening) return
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 2); return
         }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             show("AGENT", "Speech recognition was not found on this phone. Update the Google app."); return
         }
-<<<<<<< HEAD
-        tts?.stop(); Voice.stop()
-        recognizer?.destroy()
-        recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
-            setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(p: Bundle?) { setState(1) }
-                override fun onBeginningOfSpeech() {}
-=======
         listening = true
         recognizer?.destroy()
         recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
@@ -1037,28 +1016,10 @@ class MainActivity : Activity() {
                     // The user started talking: the phone stops its own speech at once.
                     if (stage.state == 2) main.post { interrupt() }
                 }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 override fun onRmsChanged(v: Float) {}
                 override fun onBufferReceived(b: ByteArray?) {}
                 override fun onEndOfSpeech() {}
                 override fun onError(e: Int) {
-<<<<<<< HEAD
-                    setState(0)
-                    main.post { recognizer?.destroy(); recognizer = null }
-                    if (keepListening && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS && ++errStreak <= 5) {
-                        main.postDelayed({ if (keepListening) listen() }, 400)
-                    } else {
-                        keepListening = false
-                        show("AGENT", "Could not hear you, tap again")
-                    }
-                }
-                override fun onResults(r: Bundle?) {
-                    setState(0)
-                    val t = r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                    if (t != null) submit(t)
-                }
-                override fun onPartialResults(b: Bundle?) {}
-=======
                     listening = false
                     main.post { recognizer?.destroy(); recognizer = null }
                     if (stage.state == 1) setState(0)
@@ -1081,13 +1042,20 @@ class MainActivity : Activity() {
                     main.post { recognizer?.destroy(); recognizer = null }
                     if (stage.state == 1) setState(0)
                     // a result that came while the phone was still talking is its own echo: drop it
-                    if (stage.state == 2) { if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300); return }
                     val t = pickSpoken(r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty())
+                    // While the phone is talking, drop only its own voice coming back into the mic (echo).
+                    // A real new sentence from the user interrupts the reply and is answered.
+                    if (stage.state == 2) {
+                        val echo = t == null || (lastSpoken.isNotBlank() && lastSpoken.contains(t.trim().take(20)))
+                        if (echo) { if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300); return }
+                        main.post { interrupt() }
+                    }
                     if (!t.isNullOrBlank() && isRude(t)) { main.post { shutDownForRude() }; return }
                     // the recognizer sometimes returns the same words again (echo or late result): skip a repeat within 6 seconds
                     val now = System.currentTimeMillis()
+                    if (t != null && SpeechGate.isEcho(t)) { if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300); return }
                     val repeat = t != null && t == lastSubmitted && now - lastSubmittedAt < 6000L
-                    if (!t.isNullOrBlank() && !repeat) { lastSubmitted = t; lastSubmittedAt = now; submit(t) }
+                    if (!t.isNullOrBlank() && !repeat) { lastSubmitted = t; lastSubmittedAt = now; nextHistType = "voice"; nextHistTitle = "Voice Assistant"; submit(t) }
                     if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300)
                 }
                 override fun onPartialResults(b: Bundle?) {
@@ -1098,25 +1066,17 @@ class MainActivity : Activity() {
                     // while the phone is talking, only a real sentence counts (short echo of its own voice is ignored)
                     if (!p.isNullOrBlank() && p.trim().length >= 4 && stage.state == 2) interrupt()
                 }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 override fun onEvent(t: Int, b: Bundle?) {}
             })
             startListening(
                 Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     .putExtra(RecognizerIntent.EXTRA_LANGUAGE, voiceLang())
-<<<<<<< HEAD
-                    // wait for a full 3 seconds of silence before deciding the sentence is finished
-                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
-                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
-                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L)
-=======
                     .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                     // a short pause ends the sentence, so the answer comes quickly
                     .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
                     .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2200L)
                     .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 800L)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             )
         }
     }
@@ -1130,18 +1090,7 @@ class MainActivity : Activity() {
 
     private fun refreshTasks() {
         val all = (prefs.getString("tasks", "") ?: "").lines().filter { it.isNotBlank() }
-<<<<<<< HEAD
-        val done = all.count { it.trim().startsWith("✓") }
-        val cells = 16
-        val filled = if (all.isEmpty()) 0 else done * cells / all.size
-        val pct = if (all.isEmpty()) 0 else done * 100 / all.size
-        val bar = "[" + "█".repeat(filled) + "░".repeat(cells - filled) + "] $pct%"
-        val shown = all.take(4).joinToString("\n") { if (it.trim().startsWith("✓")) it.trim() else "▸ ${it.trim()}" }
-        tasksText.text = "[ TODAY.TASKS ] ${if (all.isEmpty()) "" else "$done/${all.size}"}\n$bar\n" +
-            (if (all.isEmpty()) "Tap to add tasks" else shown)
-=======
         tasksText.setTasks(all)
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         flashIn(tasksText)
     }
 
@@ -1190,7 +1139,7 @@ class MainActivity : Activity() {
                 if (items.isEmpty()) sb.append("Could not load. Tap to retry.")
                 else items.forEach { h ->
                     val s = sb.length
-                    sb.append("▸ " + h.title.take(60) + "\n")
+                    sb.append(Glyphs.span(this@MainActivity, Glyphs.ARROW, Theme.C)); sb.append(" " + h.title.take(60) + "\n")
                     sb.setSpan(URLSpan(h.link), s, sb.length - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
                 newsText.text = sb
@@ -1199,8 +1148,6 @@ class MainActivity : Activity() {
         }.start()
     }
 
-<<<<<<< HEAD
-=======
     /** The one sound used for videos. Uploading a new one replaces it. */
     private fun pickVideoSound() {
         startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*"), 78)
@@ -1212,15 +1159,12 @@ class MainActivity : Activity() {
         show("AGENT", "Video sound removed. No sound is used until you upload one.")
     }
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     private fun pickSong() {
         startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*"), 77)
     }
 
     override fun onActivityResult(req: Int, res: Int, data: Intent?) {
         super.onActivityResult(req, res, data)
-<<<<<<< HEAD
-=======
         if (req == 79 && res == RESULT_OK) {
             data?.data?.let { saveAssistantAttachment(it) }
         }
@@ -1236,7 +1180,6 @@ class MainActivity : Activity() {
                 }
             }
         }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         if (req == 77 && res == RESULT_OK) {
             data?.data?.let { uri ->
                 try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: Exception) {}
@@ -1368,8 +1311,6 @@ class MainActivity : Activity() {
         if (v is ViewGroup) for (i in 0 until v.childCount) styleSettings(v.getChildAt(i))
     }
 
-<<<<<<< HEAD
-=======
     private fun openPlanDashboard() {
         try { startActivity(Intent(this, PlanDashboardActivity::class.java)) }
         catch (e: Exception) { show("PLANS", "Could not open Plan Dashboard: ${e.message}") }
@@ -1383,24 +1324,79 @@ class MainActivity : Activity() {
         plan3d.setFocus(stage.orbX / w, stage.orbY / h, (stage.orbR * 2.4f) / minOf(w, h))
     }
 
-    /** Free users keep the original globe. A bought plan replaces it with that plan's real 3D object and animated background. */
+    /**
+     * Free users keep the normal home. An active plan replaces the middle of Home with that plan's real 3D animation
+     * (Plan3DView). Only the top header and the bottom bar stay. REVIEW opens the same animation full screen.
+     */
     private fun applyPurchasedPlanHome() {
         if (!::plan3d.isInitialized || !::stage.isInitialized) return
         val number = Entitlements.dashboardPlanNumber(this)
         if (number !in 1..17) {
+            homeMid.forEach { it.visibility = View.VISIBLE }
+            reviewBtn?.visibility = View.GONE
             plan3d.visibility = View.GONE
+            stage.visibility = View.VISIBLE
             stage.showOrb = true
             planThemeLabel.alpha = 0f
             return
         }
         val p = PlanCatalog.get(number)
+        homeMid.forEach { it.visibility = View.GONE }
+        stage.visibility = View.GONE
         plan3d.setPlan(number)
         plan3d.visibility = View.VISIBLE
-        stage.showOrb = false
+        reviewBtn?.visibility = View.VISIBLE
         planThemeLabel.text = "PLAN " + number.toString().padStart(2, '0') + "  " + p.name.uppercase(Locale.US)
         planThemeLabel.setTextColor(p.accent)
         planThemeLabel.alpha = 1f
         placePlan3d()
+    }
+
+    /** REVIEW: the active plan's 3D animation on its own full page, with its name and a CLOSE button. */
+    private fun openPlanReview() {
+        val n = Entitlements.dashboardPlanNumber(this)
+        if (n !in 1..17) return
+        closeReview()
+        val p = PlanCatalog.get(n)
+        val box = FrameLayout(this).apply { setBackgroundColor(Theme.BG) }
+        val view = Plan3DView(this).apply { setBackdrop(true); setPlan(n); onResume() }
+        box.addView(view, FrameLayout.LayoutParams(-1, -1))
+        box.addView(TextView(this).apply {
+            text = "PLAN " + n.toString().padStart(2, '0') + "  " + p.name.uppercase(Locale.US)
+            setTextColor(p.accent); typeface = Typeface.DEFAULT_BOLD; textSize = 17f
+            setShadowLayer(8f * resources.displayMetrics.density, 0f, 0f, p.accent)
+            setPadding(dp(16), dp(20), dp(16), dp(10))
+        }, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+        box.addView(TextView(this).apply {
+            text = Glyphs.label(this@MainActivity, Glyphs.CROSS, Color.WHITE, "CLOSE"); setTextColor(Color.WHITE); typeface = Typeface.DEFAULT_BOLD; textSize = 13f
+            setPadding(dp(14), dp(9), dp(14), dp(9))
+            background = NeonBg(Theme.G, 0xDD02100A.toInt(), 8f, 1.4f)
+            setOnClickListener { closeReview() }
+        }, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = dp(28) })
+        reviewLayer = box
+        reviewView = view
+        root.addView(box, FrameLayout.LayoutParams(-1, -1))
+    }
+
+    /** First-run setup screen, also opened from the SETUP button. */
+    private fun openSetupWizard() {
+        if (setupWizard != null) return
+        val w = SetupWizard(this) { closeSetupWizard() }
+        setupWizard = w
+        root.addView(w, FrameLayout.LayoutParams(-1, -1))
+    }
+
+    private fun closeSetupWizard() {
+        setupWizard?.let { root.removeView(it) }
+        setupWizard = null
+        prefs.edit().putBoolean("setup_wizard_seen", true).apply()
+    }
+
+    private fun closeReview() {
+        reviewView?.onPause()
+        reviewLayer?.let { root.removeView(it) }
+        reviewLayer = null
+        reviewView = null
     }
 
     private fun showHistory() {
@@ -1428,8 +1424,8 @@ class MainActivity : Activity() {
             .setNegativeButton("Close", null).show()
     }
 
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     private fun showSettings() {
+        Thread { FeatureSwitches.refresh(this) }.start()
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), 0) }
         col.addView(TextView(this).apply {
             text = "dev Tarek4x"; typeface = mono; textSize = 12f; setTextColor(Theme.DIM)
@@ -1453,14 +1449,11 @@ class MainActivity : Activity() {
             col.addView(e)
             return e
         }
-<<<<<<< HEAD
-=======
         section("PLANS & HOME DESIGN")
         col.addView(Button(this).apply {
             typeface = mono; text = "OPEN 17 PLAN DASHBOARD"
             setOnClickListener { openPlanDashboard() }
         })
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         section("AI")
         val hasKey = prefs.getString("apikey", null) != null
         val api = field(if (hasKey) "Your Anthropic API key (saved, only on this phone)" else "Your own Anthropic API key (stays only on this phone)", "apikey", true)
@@ -1473,20 +1466,12 @@ class MainActivity : Activity() {
                 setOnClickListener {
                     val k = f.text.toString().trim()
                     if (k.isEmpty()) { show("AGENT", "Type one key in the box first."); return@setOnClickListener }
-<<<<<<< HEAD
-                    val cur = (prefs.getString(prefKey, "") ?: "").split(Regex("[\\r\\n,]+")).map { it.trim() }.filter { it.isNotEmpty() }
-                    val list = (cur + k).distinct()
-                    prefs.edit().putString(prefKey, list.joinToString(",")).apply()
-                    f.setText("")
-                    show("AGENT", "$name key added. Saved keys: ${list.size}. Add the next one.")
-=======
                     val merged = mergedKeys(prefKey, k)
                     prefs.edit().putString(prefKey, merged).apply()
                     f.setText("")
                     val count = merged.split(",").size
                     text = "ADD $name KEY TO LIST (saved: $count)"
                     show("AGENT", "$name key added. Saved keys: $count. Add the next one.")
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 }
             }
         }
@@ -1502,11 +1487,7 @@ class MainActivity : Activity() {
             val ed = prefs.edit()
             if (api.text.isNotBlank()) ed.putString("apikey", api.text.toString().trim())
             listOf("openai" to keyOpenai, "gemini" to keyGemini, "grok" to keyGrok, "custom" to keyCustom)
-<<<<<<< HEAD
-                .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", f.text.toString().trim()) }
-=======
                 .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", mergedKeys("key_$p", f.text.toString())) }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             ed.putString("llm_base", baseCustom.text.toString().trim())
             ed.apply()
         }
@@ -1551,16 +1532,9 @@ class MainActivity : Activity() {
                 }.start()
             }
         })
-<<<<<<< HEAD
-        val songLink = field("Favorite song link (optional)", "fav_song_link")
-        val songBtn = Button(this).apply { typeface = mono; text = "PICK FAVORITE SONG FILE"; setOnClickListener { pickSong() } }
-        col.addView(songBtn)
-        if (!Entitlements.isOwner(this)) { songLink.visibility = View.GONE; songBtn.visibility = View.GONE }
-=======
         val songBtn = Button(this).apply { typeface = mono; text = "PICK FAVORITE SONG FILE"; setOnClickListener { pickSong() } }
         col.addView(songBtn)
         if (!Entitlements.isOwner(this)) { songBtn.visibility = View.GONE }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         section("VOICE")
         fun autoLabel() = "Keep listening after each reply: " + (if (prefs.getBoolean("auto_listen", true)) "ON" else "OFF")
         col.addView(Button(this).apply {
@@ -1572,11 +1546,8 @@ class MainActivity : Activity() {
         })
         val elKey = field(if (!prefs.getString("el_key", null).isNullOrBlank()) "ElevenLabs API key (saved, only on this phone)" else "ElevenLabs API key (optional, natural female voice)", "el_key", true)
         col.addView(keyAddButton("el_key", elKey, "ELEVENLABS"))
-<<<<<<< HEAD
-=======
         // Manual voice ID: works even when the voice list cannot be loaded (key without voice-list permission).
         val elVoiceId = field("ElevenLabs voice ID (paste it from ElevenLabs > Voices, a female voice)", "el_voice")
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         fun elLabel() = "ElevenLabs voice: " + (if (prefs.getBoolean("el_on", true)) "ON" else "OFF")
         col.addView(Button(this).apply {
             typeface = mono; text = elLabel()
@@ -1585,16 +1556,10 @@ class MainActivity : Activity() {
         col.addView(Button(this).apply {
             typeface = mono; text = "CHOOSE FEMALE VOICE" + (prefs.getString("el_voice_name", null)?.let { " ($it)" } ?: "")
             setOnClickListener {
-<<<<<<< HEAD
-                val key = elKey.text.toString().trim().ifBlank { prefs.getString("el_key", "") ?: "" }
-                if (key.isBlank()) { show("AGENT", "Enter your ElevenLabs API key first"); return@setOnClickListener }
-                prefs.edit().putString("el_key", key).apply()
-=======
                 val typed = elKey.text.toString().trim()
                 if (typed.isNotBlank()) { prefs.edit().putString("el_key", mergedKeys("el_key", typed)).apply(); elKey.setText("") }
                 val key = prefs.getString("el_key", "") ?: ""
                 if (key.isBlank()) { show("AGENT", "Enter your ElevenLabs API key first"); return@setOnClickListener }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 show("AGENT", "Loading female voices...")
                 Thread {
                     val (voices, err) = Voice.femaleVoices(key)
@@ -1617,11 +1582,6 @@ class MainActivity : Activity() {
             typeface = mono; text = searchLabel()
             setOnClickListener { prefs.edit().putBoolean("search_on", !prefs.getBoolean("search_on", false)).apply(); text = searchLabel() }
         })
-<<<<<<< HEAD
-        val compName = field("Companion: her name (optional)", "comp_name")
-        val compCall = field("Companion: what she calls you (default: jaan)", "comp_call")
-=======
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         section("ACCOUNT")
         val email = field("Account email", "email")
         val pass = field("Account password", "", true)
@@ -1641,8 +1601,6 @@ class MainActivity : Activity() {
                 }
             }.start()
         }
-        if (acct) b("LOGIN") { auth("login") }
-        if (acct) b("SIGN UP") { auth("register") }
         if (acct) b("ACCOUNT (website)") {
             if (Config.enabled()) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Config.SERVER + "/account.php")))
         }
@@ -1666,8 +1624,6 @@ class MainActivity : Activity() {
                 }
                 .setNegativeButton("CANCEL", null).show()
         }
-<<<<<<< HEAD
-=======
         b("VIDEO SOUND: upload a file (replaces the current one)") { pickVideoSound() }
         b("VIDEO SOUND: remove current") { removeVideoSound() }
         b("CPANEL SITES (paste one site per line)") {
@@ -1683,12 +1639,7 @@ class MainActivity : Activity() {
                 }
                 .setNegativeButton("CANCEL", null).show()
         }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         b("LAST AGENT RUN (log)") { show("AGENT", prefs.getString("agent_log", "(no run yet)") ?: "(no run yet)") }
-        b("LOG OUT OF WEBSITE (use the phone's own key)") {
-            prefs.edit().remove("svtoken").apply()
-            show("AGENT", "Logged out of the website. The phone's own AI key and voice are used now.")
-        }
         b("OPEN WEBSITE / ADMIN PANEL") { if (Config.enabled()) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Config.SERVER))) }
         section("SHORTCUTS (work offline)")
         val scBox = EditText(this).apply { hint = "phrase = command, e.g. kaj shuru = open youtube"; typeface = mono; textSize = 13f }
@@ -1821,10 +1772,6 @@ class MainActivity : Activity() {
                 if (on && Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3)
             }
         })
-<<<<<<< HEAD
-        b("Reminder times and messages") { editNote("REMINDERS // one per line: HH:MM message. {call} = her pet name for you", "rem_lines", Reminders.DEFAULT_LINES) }
-=======
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         b("News feeds") { editNote("NEWS.FEEDS // one https RSS link per line", "feeds", "") }
         b("Allow background running (battery)") { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
         b("Remaining permissions (mic, media)") {
@@ -1835,6 +1782,7 @@ class MainActivity : Activity() {
             requestPermissions(p.toTypedArray(), 1)
         }
         for (i in 0 until col.childCount) { val v = col.getChildAt(i); if (v is Button) pressFx(v) }
+        FeatureSwitches.apply(this, col)
         styleSettings(col)
         AlertDialog.Builder(this).setTitle("SETTINGS")
             .setView(ScrollView(this).apply { setBackgroundColor(Theme.BG); setPadding(dp(4), dp(8), dp(4), dp(8)); addView(col) })
@@ -1842,27 +1790,16 @@ class MainActivity : Activity() {
                 val ed = prefs.edit()
                 if (api.text.isNotBlank()) ed.putString("apikey", api.text.toString().trim())
                 listOf("openai" to keyOpenai, "gemini" to keyGemini, "grok" to keyGrok, "custom" to keyCustom)
-<<<<<<< HEAD
-                    .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", f.text.toString().trim()) }
-=======
                     .forEach { (p, f) -> if (f.text.isNotBlank()) ed.putString("key_$p", mergedKeys("key_$p", f.text.toString())) }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 ed.putString("llm_base", baseCustom.text.toString().trim())
                 ed.putString("token", tok.text.toString().trim())
                 ed.putString("chat", chat.text.toString().trim())
                 ed.putString("vlang", vlang.text.toString().trim())
-<<<<<<< HEAD
-                if (elKey.text.isNotBlank()) ed.putString("el_key", elKey.text.toString().trim())
-                if (Entitlements.isOwner(this)) ed.putString("fav_song_link", songLink.text.toString().trim())
-                ed.putString("comp_name", compName.text.toString().trim())
-                ed.putString("comp_call", compCall.text.toString().trim())
-=======
                 if (elKey.text.isNotBlank()) ed.putString("el_key", mergedKeys("el_key", elKey.text.toString()))
                 val vid = elVoiceId.text.toString().trim()
                 if (vid.isNotBlank() && vid != prefs.getString("el_voice", "")) {
                     ed.putString("el_voice", vid).putString("el_voice_name", "voice ID " + vid.take(6))
                 }
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
                 ed.apply()
             }
             .setNegativeButton("Close", null).show()

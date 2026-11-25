@@ -145,8 +145,6 @@ input:focus,textarea:focus{box-shadow:0 0 0 3px rgba(0,255,156,.15)}
   .vision-result{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.voice-orb{animation:none}.premium-panel{animation:none}}
-<<<<<<< HEAD
-=======
 
 
 /* Account-plan homepage artwork: existing Matrix layout and all navigation remain intact. */
@@ -158,4 +156,3 @@ input:focus,textarea:focus{box-shadow:0 0 0 3px rgba(0,255,156,.15)}
 #center:after{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 38%,#020604a8 100%)}
 #stage{position:relative;z-index:1}#controls{z-index:2}
 @media(max-width:520px){.plan-badge{font-size:8px;padding:4px 6px;max-width:48vw}#center:before{inset:3% 1% 18%;opacity:.7}}
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb

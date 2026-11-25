@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
@@ -54,58 +55,120 @@ class NeonBg(private val color: Int, private val fill: Int = 0xCC03100C.toInt(),
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }
 
-/** Miss Sara's round photo with a crown and a slowly turning neon ring. */
+/** Miss Sara's logo (rounded square) with a slowly turning neon ring around it. */
 class AvatarView(ctx: Context) : View(ctx) {
     private val d = resources.displayMetrics.density
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true; isDither = true }
     private var bmp: Bitmap? = null
     private var t = 0f
     private val clip = Path()
+    private val rect = RectF()
+    private val inner = RectF()
+    private val src = Rect()
+    private val mtx = Matrix()
+    private var sweep: SweepGradient? = null
 
     init {
-        try { ctx.assets.open("miss_sara_avatar.png").use { bmp = BitmapFactory.decodeStream(it) } } catch (_: Exception) {}
+        for (name in listOf("ms_sara_logo.png", "miss_sara_avatar.png")) {
+            try { ctx.assets.open(name).use { bmp = BitmapFactory.decodeStream(it) } } catch (_: Exception) {}
+            if (bmp != null) break
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
+        val s = minOf(w, h) - 4f * d
+        val cx = w / 2f; val cy = h / 2f
+        rect.set(cx - s / 2f, cy - s / 2f, cx + s / 2f, cy + s / 2f)
+        val inset = 3.5f * d
+        inner.set(rect.left + inset, rect.top + inset, rect.right - inset, rect.bottom - inset)
+        sweep = SweepGradient(cx, cy, intArrayOf(Theme.G, Theme.C, 0xFF1B8F52.toInt(), Theme.G), null)
     }
 
     override fun onDraw(c: Canvas) {
         t += 0.016f
-        val w = width.toFloat(); val h = height.toFloat()
-        val crownH = 16f * d
-        val cx = w / 2f; val cy = crownH + (h - crownH) / 2f
-        val r = minOf(w, h - crownH) / 2f - 2f * d
-        // ring
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 3f * d
-        paint.shader = SweepGradient(cx, cy, intArrayOf(Theme.G, Theme.C, 0xFF1B8F52.toInt(), Theme.G), null)
-        c.save(); c.rotate(t * 40f, cx, cy)
-        c.drawCircle(cx, cy, r, paint)
-        c.restore()
+        val rad = 16f * d
+        val cx = width / 2f; val cy = height / 2f
+        // soft glow
         paint.shader = null
+        paint.style = Paint.Style.STROKE
         paint.color = withA(Theme.G, 50); paint.strokeWidth = 7f * d
-        c.drawCircle(cx, cy, r, paint)
-        // photo
-        val ri = r - 3.5f * d
+        c.drawRoundRect(rect, rad, rad, paint)
+        // logo, fitted exactly inside the ring
         val b = bmp
         if (b != null) {
-            clip.reset(); clip.addCircle(cx, cy, ri, Path.Direction.CW)
+            val ir = rad - 3.5f * d
+            clip.reset(); clip.addRoundRect(inner, ir, ir, Path.Direction.CW)
+            src.set(0, 0, b.width, b.height)
+            paint.style = Paint.Style.FILL
             c.save(); c.clipPath(clip)
-            c.drawBitmap(b, Rect(0, 0, b.width, b.height), RectF(cx - ri, cy - ri, cx + ri, cy + ri), paint)
+            c.drawBitmap(b, src, inner, paint)
             c.restore()
         } else {
             paint.style = Paint.Style.FILL; paint.color = 0xFF0A2A1C.toInt()
-            c.drawCircle(cx, cy, ri, paint)
+            c.drawRoundRect(inner, rad, rad, paint)
         }
-        // crown
-        val cw = 22f * d
-        val top = 2f * d + 1.5f * d * sin(t * 2f)
-        val base = crownH - 1f * d
-        val crown = Path()
-        crown.moveTo(cx - cw / 2f, base); crown.lineTo(cx - cw / 2f, top + 5f * d); crown.lineTo(cx - cw / 4f, top + 9f * d)
-        crown.lineTo(cx, top + 2f * d); crown.lineTo(cx + cw / 4f, top + 9f * d); crown.lineTo(cx + cw / 2f, top + 5f * d)
-        crown.lineTo(cx + cw / 2f, base); crown.close()
-        paint.style = Paint.Style.FILL; paint.color = 0xFFFFC21F.toInt()
-        c.drawPath(crown, paint)
-        paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.2f * d; paint.color = 0xFFFFE27A.toInt()
-        c.drawPath(crown, paint)
+        // turning ring (the gradient turns, the frame stays still)
+        val sg = sweep
+        if (sg != null) {
+            mtx.setRotate(t * 40f, cx, cy); sg.setLocalMatrix(mtx)
+            paint.shader = sg
+        } else paint.color = Theme.G
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f * d
+        c.drawRoundRect(rect, rad, rad, paint)
+        paint.shader = null
+        postInvalidateOnAnimation()
+    }
+}
+
+/** A small hand-drawn neon rocket with a flickering flame (used on the SETUP button). */
+class RocketIconView(ctx: Context) : View(ctx) {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var t = 0f
+
+    override fun onDraw(c: Canvas) {
+        t += 0.016f
+        val u = minOf(width, height) / 26f
+        c.save()
+        c.translate(width / 2f, height / 2f)
+        c.rotate(45f)
+        c.scale(u, u)
+        c.translate(0f, -1f)
+        // flame (flickers)
+        val fl = 5f + 2.2f * sin(t * 22f) + 1.2f * sin(t * 37f)
+        val outer = Path().apply {
+            moveTo(-2.4f, 7f); quadTo(-1.6f, 7f + fl * 0.7f, 0f, 7f + fl)
+            quadTo(1.6f, 7f + fl * 0.7f, 2.4f, 7f); close()
+        }
+        paint.style = Paint.Style.FILL; paint.color = 0xFFFF7A00.toInt(); c.drawPath(outer, paint)
+        val innerF = Path().apply {
+            moveTo(-1.2f, 7f); quadTo(-0.8f, 7f + fl * 0.45f, 0f, 7f + fl * 0.62f)
+            quadTo(0.8f, 7f + fl * 0.45f, 1.2f, 7f); close()
+        }
+        paint.color = 0xFFFFE066.toInt(); c.drawPath(innerF, paint)
+        // fins
+        paint.color = Theme.M
+        val finL = Path().apply { moveTo(-3.4f, 1.5f); lineTo(-7.2f, 8.2f); lineTo(-3.2f, 6.8f); close() }
+        val finR = Path().apply { moveTo(3.4f, 1.5f); lineTo(7.2f, 8.2f); lineTo(3.2f, 6.8f); close() }
+        c.drawPath(finL, paint); c.drawPath(finR, paint)
+        // body
+        val body = Path().apply {
+            moveTo(0f, -11.5f); cubicTo(5.4f, -6.5f, 5.2f, 2f, 3.6f, 7.2f)
+            lineTo(-3.6f, 7.2f); cubicTo(-5.2f, 2f, -5.4f, -6.5f, 0f, -11.5f); close()
+        }
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 3.2f; paint.color = withA(Theme.M, 70)
+        c.drawPath(body, paint)
+        paint.style = Paint.Style.FILL; paint.color = 0xFFF4F7FF.toInt(); c.drawPath(body, paint)
+        // nose cap
+        val nose = Path().apply {
+            moveTo(0f, -11.5f); cubicTo(2.4f, -9.3f, 3.6f, -7.4f, 4.1f, -5.6f)
+            lineTo(-4.1f, -5.6f); cubicTo(-3.6f, -7.4f, -2.4f, -9.3f, 0f, -11.5f); close()
+        }
+        paint.color = Theme.M; c.drawPath(nose, paint)
+        // window
+        paint.color = 0xFF0A2A3A.toInt(); c.drawCircle(0f, -0.8f, 2.7f, paint)
+        paint.color = Theme.C; c.drawCircle(0f, -0.8f, 2f, paint)
+        paint.color = 0xAAFFFFFF.toInt(); c.drawCircle(-0.7f, -1.5f, 0.6f, paint)
+        c.restore()
         postInvalidateOnAnimation()
     }
 }
@@ -191,7 +254,7 @@ class StatusPanel(ctx: Context) : View(ctx) {
 
         // row 1: icon + label over value
         val r1 = listOf(Triple("UPTIME", uptime, 0xFFFFFFFF.toInt()), Triple("ACCESSIBILITY", if (accOn) "ON" else "OFF", if (accOn) Theme.G else Theme.C),
-            Triple("OWNER", owner, 0xFFFFFFFF.toInt()))
+            Triple("OWNER", owner, when (owner) { "ON" -> Theme.G; "LOCKED" -> Theme.A; else -> 0xFFFFFFFF.toInt() }))
         for (i in 0..2) {
             val x = padX + colW * i + 6f * d
             icon(c, i, x + 13f * d, y0 + rowH / 2f)
@@ -285,7 +348,7 @@ class TasksPanel(ctx: Context) : View(ctx) {
         val open = all.firstOrNull { !it.trim().startsWith("✓") }
         first = when {
             all.isEmpty() -> "Tap to add tasks"
-            open == null -> "All done ✓"
+            open == null -> "All done"
             else -> open.trim()
         }
         invalidate()

@@ -12,25 +12,25 @@ class GlitchTitle(ctx: Context, initial: String) : View(ctx) {
     var label: String = initial
         private set
     /** Changes the shown name, for example when the admin changes the site name. */
-    fun setLabel(text: String) { label = text; invalidate() }
+    fun setLabel(text: String) { label = text; requestLayout(); invalidate() }
     private val d = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-<<<<<<< HEAD
-        textSize = 20f * d
-=======
         textSize = 28f * d
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         letterSpacing = 0.12f
     }
     private var t = 0f
 
+    private val baseSize = 28f * d
+
+    /** Shrinks the text just enough to fit the space it is given, so the whole name always shows. */
     override fun onMeasure(wSpec: Int, hSpec: Int) {
-<<<<<<< HEAD
-        setMeasuredDimension(resolveSize((paint.measureText(label) + 6 * d).toInt(), wSpec), (30 * d).toInt())
-=======
+        paint.textSize = baseSize
+        if (MeasureSpec.getMode(wSpec) != MeasureSpec.UNSPECIFIED) {
+            val avail = MeasureSpec.getSize(wSpec) - 8f * d
+            while (avail > 0f && paint.measureText(label) > avail && paint.textSize > 12f * d) paint.textSize -= 0.5f * d
+        }
         setMeasuredDimension(resolveSize((paint.measureText(label) + 6 * d).toInt(), wSpec), (40 * d).toInt())
->>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     }
 
     override fun onDraw(c: Canvas) {
