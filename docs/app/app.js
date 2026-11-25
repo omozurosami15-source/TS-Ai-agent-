@@ -4,7 +4,11 @@
 const CFG = {
   OWNER_NAME: 'Tarek', OWNER_CONTACT: '+8801622058034', TELEGRAM_URL: 'https://t.me/ts_official_top',
   GITHUB_REPO: 'OWNER/REPO',
+<<<<<<< HEAD
   SERVER: '',                     // <- your TS Cloud server, for example 'https://api.yourdomain.com' (no trailing slash)      // <- your repo, for example 'tarek/ts-agent'
+=======
+  SERVER: '../../backend',       // Same-host PHP backend. Replace with your API base URL if hosted elsewhere (no trailing slash).
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   ALL_FREE: false, BUY_URL: 'https://t.me/ts_official_top', DEFAULT_LANG: 'en-US'
 };
 const HAS_DOM = typeof document !== 'undefined';
@@ -64,12 +68,62 @@ const Plan = {
   isOwner: () => Plan.get() === 'owner' && Owner.unlocked(),
   companion: () => CFG.ALL_FREE || ['p1', 'p2', 'owner'].includes(Plan.get()),
   premium: () => CFG.ALL_FREE || ['p2', 'owner'].includes(Plan.get()),
+<<<<<<< HEAD
+=======
+  // each of the 17 premium plans is unlocked separately by its own code (stored as {moduleId: untilTime})
+  modules() { try { return JSON.parse(store.get('modules', '{}')) || {}; } catch (e) { return {}; } },
+  hasModule(id) { if (CFG.ALL_FREE || Plan.get() === 'owner') return true; const u = Plan.modules()[id]; return u !== undefined && (u === 0 || Date.now() < u); },
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   label() {
     const p = Plan.get(), u = Number(store.get('plan_until', '0'));
     const n = { p1: 'PLAN 1', p2: 'PLAN 2', owner: 'OWNER' }[p] || 'FREE';
     return !p || p === 'owner' || u === 0 ? n : n + ' until ' + new Date(u).toISOString().slice(0, 10);
   }
 };
+<<<<<<< HEAD
+=======
+
+// Paid subscription plans 2–18 map to the 17 supplied plan artworks 01–17.
+// Free plan (id 1) keeps the original MISS SARA Matrix home screen.
+function applyPlanArtwork(planId, planName, source='account') {
+  const id = Number(planId);
+  const artNo = id >= 2 && id <= 18 ? id - 1 : 0;
+  const center = $('center');
+  const badge = $('planBadge');
+  if (center) {
+    if (artNo) {
+      center.style.setProperty('--plan-art', `url(\"plan-designs/plan_${String(artNo).padStart(2,'0')}.png\")`);
+      center.dataset.activePlan = String(id);
+    } else {
+      center.style.removeProperty('--plan-art');
+      delete center.dataset.activePlan;
+    }
+  }
+  if (badge) {
+    badge.textContent = artNo ? `✦ ${String(artNo).padStart(2,'0')} · ${planName || 'ACTIVE PLAN'}` : '● FREE · MATRIX HOME';
+    badge.title = source === 'account' ? 'Verified active account subscription' : 'Local plan entitlement';
+    badge.classList.toggle('paid', !!artNo);
+  }
+}
+async function refreshCloudPlanArtwork() {
+  const token = store.get('svtoken');
+  if (token && CFG.SERVER) {
+    try {
+      const r = await fetch(CFG.SERVER + '/api.php?action=me', { method:'POST', headers:{'X-Token':token,'Content-Type':'application/json'}, body:'{}', cache:'no-store' });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Account status unavailable');
+      applyPlanArtwork(j.plan_id, j.plan, 'account');
+      return;
+    } catch (e) {
+      // Do not replace a verified-looking plan with a guess when the server is offline.
+      if (badgePlanStatus()) return;
+    }
+  }
+  const local = Plan.get();
+  applyPlanArtwork(local === 'p1' ? 2 : local === 'p2' ? 3 : 1, local ? Plan.label() : 'Free', 'local');
+}
+function badgePlanStatus(){ return !!document.getElementById('center')?.dataset.activePlan; }
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 async function redeem(raw) {
   const code = normCode(raw);
   if (code.length < 12) return 'That code is not valid.';
@@ -78,8 +132,21 @@ async function redeem(raw) {
   const c = (book.coupons || []).find(x => x.h === h);
   if (!c) return 'That code is not valid.';
   if ((book.revoked || []).includes(c.id)) return 'That code has been withdrawn.';
+<<<<<<< HEAD
   store.set('plan', c.plan); store.set('plan_code_id', c.id);
   store.set('plan_until', c.days === 0 ? 0 : Date.now() + c.days * 86400000);
+=======
+  if (String(c.plan).startsWith('module:')) {
+    const mid = c.plan.slice(7), mod = PREMIUM_MODULES.find(x => x.id === mid);
+    if (!mod) return 'That code is not valid.';
+    const m = Plan.modules(); m[mid] = c.days === 0 ? 0 : Date.now() + c.days * 86400000;
+    store.set('modules', JSON.stringify(m));
+    return 'Unlocked: ' + mod.n + (c.days === 0 ? '' : ' for ' + c.days + ' days');
+  }
+  store.set('plan', c.plan); store.set('plan_code_id', c.id);
+  store.set('plan_until', c.days === 0 ? 0 : Date.now() + c.days * 86400000);
+  applyPlanArtwork(c.plan === 'p1' ? 2 : c.plan === 'p2' ? 3 : 1, Plan.label(), 'local');
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   return 'Activated: ' + Plan.label();
 }
 
@@ -180,7 +247,11 @@ const LLM = {
       return j.text || '';
     }
     if (p === 'anthropic') {
+<<<<<<< HEAD
       const body = { model, max_tokens: search ? 900 : 700, system, messages: [{ role: 'user', content: prompt }] };
+=======
+      const body = { model, max_tokens: search ? 1800 : 1400, system, messages: [{ role: 'user', content: prompt }] };
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
       if (search) body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }];
       r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('AI error ' + r.status + ': ' + (await r.text()).slice(0, 160));
@@ -198,6 +269,31 @@ const LLM = {
     j = await r.json(); const c = j.choices[0].message.content;
     return Array.isArray(c) ? c.map(x => x.text || '').join('') : String(c || '');
   },
+<<<<<<< HEAD
+=======
+  async analyzeImage(system, prompt, dataUrl) {
+    const p = LLM.provider(), key = LLM.key(p), model = LLM.model(p);
+    if (!LLM.configured()) throw new Error('Open SETTINGS and configure an AI provider, API key and model first.');
+    if (p === 'cloud') throw new Error('The configured Cloud endpoint does not expose image analysis yet. Choose a vision-capable OpenAI, Anthropic, Gemini, Grok or custom model.');
+    const match = String(dataUrl).match(/^data:(image\/(?:jpeg|png|webp|gif));base64,([\s\S]+)$/i);
+    if (!match) throw new Error('Unsupported image. Choose a JPEG, PNG, WEBP or GIF image.');
+    const mediaType = match[1].toLowerCase(), imageData = match[2];
+    let r, j;
+    if (p === 'anthropic') {
+      r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','content-type':'application/json'}, body:JSON.stringify({model,max_tokens:1800,system,messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image',source:{type:'base64',media_type:mediaType,data:imageData}}]}]}) });
+      if (!r.ok) throw new Error('Vision API error '+r.status+': '+(await r.text()).slice(0,180));
+      j=await r.json(); return (j.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n');
+    }
+    if (p === 'gemini') {
+      r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model.replace(/^models\//,'')+':generateContent',{method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:prompt},{inlineData:{mimeType:mediaType,data:imageData}}]}],generationConfig:{maxOutputTokens:1100}})});
+      if(!r.ok) throw new Error('Vision API error '+r.status+': '+(await r.text()).slice(0,180));
+      j=await r.json(); return ((j.candidates||[{}])[0].content||{parts:[]}).parts.map(x=>x.text||'').join('\n');
+    }
+    r=await fetch(LLM.base(p)+'/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,max_tokens:1100,messages:[{role:'system',content:system},{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:'data:'+mediaType+';base64,'+imageData,detail:'high'}}]}]})});
+    if(!r.ok) throw new Error('Vision API error '+r.status+': '+(await r.text()).slice(0,180));
+    j=await r.json(); const c=j.choices?.[0]?.message?.content; return Array.isArray(c)?c.map(x=>x.text||'').join('\n'):String(c||'');
+  },
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   async models() {
     const p = LLM.provider(), key = LLM.key(p); if (!key) throw new Error('Enter the key for ' + p.toUpperCase() + ' first');
     let r, j;
@@ -309,7 +405,11 @@ async function cloudAuth(action, email, password) {
   try {
     const r = await fetch(CFG.SERVER + '/api.php?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name: email.split('@')[0] }) });
     const j = await r.json().catch(() => ({})); if (!r.ok) return j.error || 'Error ' + r.status;
+<<<<<<< HEAD
     store.set('svtoken', j.token); store.set('cloud_email', email); return 'Logged in to TS Cloud';
+=======
+    store.set('svtoken', j.token); store.set('cloud_email', email); await refreshCloudPlanArtwork(); return 'Logged in to TS Cloud';
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   } catch (e) { return 'Network error: ' + e.message; }
 }
 const memory = () => (Owner.unlocked() ? store.get('memory') : '');
@@ -368,7 +468,11 @@ async function speak(text, lang) {
   stopSpeak();
   if (Eleven.configured()) { try { const a = await Eleven.speak(text); a.onplay = () => setState(2); a.onended = () => { if (state === 2) setState(0); }; await a.play(); return; } catch (e) {} }
   if (!('speechSynthesis' in window)) return;
+<<<<<<< HEAD
   const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
+=======
+  const u = new SpeechSynthesisUtterance(text); u.lang = lang || voiceLang(); u.rate = Math.max(0.75, Math.min(1.25, Number(store.get('voice_rate', '1')) || 1)); u.onstart = () => setState(2); u.onend = () => { if (state === 2) setState(0); }; speechSynthesis.speak(u);
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 }
 function listen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -645,8 +749,136 @@ function tick() {
   const s = Math.floor((Date.now() - t0) / 1000), p = n => String(n).padStart(2, '0');
   $('sys').textContent = 'UPTIME ' + p(s / 3600 | 0) + ':' + p(s / 60 % 60 | 0) + ':' + p(s % 60) + ' | VOICE:' + voiceLang() + ' | OWNER:' + (!Owner.isSet() ? '-' : Owner.unlocked() ? 'ON' : 'LOCKED') + ' | PLAN:' + (Plan.get() || 'free').toUpperCase() + ' | COINS:' + (store.get('coins_text') || '-');
 }
+<<<<<<< HEAD
 async function init() {
   startRain(); startStage(); boot(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
+=======
+/* ---------- premium multi-page navigation ---------- */
+const PREMIUM_MODULES = [
+  {id:'neural',n:'NEURAL CORE',i:'✧',d:'Live AI brain, reasoning state and processing visualization.',f:['AI status and model identity','Request lifecycle and response timing','Context-aware assistant routing']},
+  {id:'voice',n:'VOICE STUDIO',i:'◉',d:'Voice controls, speech recognition and spoken responses.',f:['Microphone and speech state','Language and voice preferences','Speech speed and output controls']},
+  {id:'memory',n:'MEMORY VAULT',i:'▤',d:'Manage saved context, notes and conversation memory.',f:['Review and edit saved memory','Search and organize notes','Clear or export selected data']},
+  {id:'soul',n:'SOUL STUDIO',i:'◇',d:'Configure the assistant identity, tone and response style.',f:['Personality instructions','Default language and answer length','Custom greeting and behavior']},
+  {id:'vision',n:'VISION LAB',i:'◈',d:'A dedicated workspace for image and document understanding.',f:['Image question workflow','Document analysis workspace','Vision-capable model configuration']},
+  {id:'web',n:'WEB INTELLIGENCE',i:'⌕',d:'Research workspace for web search and source-based answers.',f:['Search configuration','Research notes','Source review workflow']},
+  {id:'code',n:'CODING STUDIO',i:'⌘',d:'A focused interface for code drafting, explanation and debugging.',f:['Code prompt workspace','Language and framework notes','Debugging checklist']},
+  {id:'files',n:'FILE READER',i:'▧',d:'Organize supported documents and ask questions about their contents.',f:['PDF and text document workflow','File summary workspace','Document question history']},
+  {id:'tasks',n:'TASK AUTOMATION',i:'✓',d:'Track daily tasks, progress and repeatable routines.',f:['Today task list','Routine shortcuts','Progress and completion states']},
+  {id:'notes',n:'SMART NOTES',i:'▣',d:'A clean place for quick notes, ideas and saved answers.',f:['Quick note editor','Pinned notes','Searchable note archive']},
+  {id:'briefing',n:'DAILY BRIEFING',i:'☼',d:'A compact daily overview for reminders, tasks and news.',f:['Daily task summary','Reminder overview','News and update feed']},
+  {id:'translate',n:'TRANSLATOR',i:'文',d:'A multilingual workspace for translation and language support.',f:['Bengali and English workflow','Language selection','Translation history']},
+  {id:'research',n:'RESEARCH DESK',i:'⌬',d:'Collect questions, findings and source notes in one workspace.',f:['Research question builder','Evidence notes','Summary workspace']},
+  {id:'calendar',n:'CALENDAR HUB',i:'▦',d:'A planned workspace for events and schedule connections.',f:['Upcoming event overview','Calendar connector settings','Schedule notes']},
+  {id:'reminders',n:'REMINDER CENTER',i:'◷',d:'Manage reminder preferences and notification schedules.',f:['Reminder on/off','Reminder times and messages','Notification permission status']},
+  {id:'security',n:'SECURITY CENTER',i:'⬡',d:'Review local privacy controls and important security settings.',f:['API key configuration','Owner lock controls','Data clearing and privacy options']},
+  {id:'analytics',n:'SYSTEM ANALYTICS',i:'▥',d:'Inspect available app, API and system diagnostics.',f:['App status and uptime','Plan and API status','Diagnostic and error information']}
+];
+const PREMIUM_PLAN_NAMES = [
+  'Neural Core Plan','Voice Studio Plan','Memory Vault Plan','Soul Studio Plan','Vision Lab Plan','Web Intelligence Plan','Coding Studio Plan','File Reader Plan','Task Automation Plan','Smart Notes Plan','Daily Briefing Plan','Translator Plan','Research Desk Plan','Calendar Hub Plan','Reminder Center Plan','Security Center Plan','System Analytics Plan'
+];
+function premiumShell(kicker,title,copy,body){
+  return `<div class="premium-hero"><div class="premium-kicker">MISS SARA AI // ${kicker}</div><h1 class="premium-title">${title}</h1><div class="premium-copy">${copy}</div></div>${body}`;
+}
+function setPremiumView(view){
+  const home=$('homeMain'), pane=$('premiumView');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  if(view==='home'){pane.classList.add('hide');home.classList.remove('hide');return;}
+  home.classList.add('hide');pane.classList.remove('hide');
+  if(view==='plans'){renderPlans();return;}
+  const map={chat:['CHAT INTERFACE','Intelligent Conversation','Use the existing TS Agent chat engine with the dedicated premium workspace.','<div class="premium-panel"><h3>Conversation workspace</h3><p>Open the chat input and continue using your configured AI provider.</p><div class="premium-actions"><button class="btn" data-action="chat">OPEN CHAT</button><button class="btn ghost" data-action="settings">AI SETTINGS</button></div></div>'],
+    memory:['MEMORY VAULT','Your Context, Organized','Review and manage the memory stored in this browser.','<div class="premium-panel"><h3>Memory controls</h3><p>Memory remains local to this browser in the current web app.</p><div class="premium-actions"><button class="btn" data-action="memory">OPEN MEMORY EDITOR</button></div></div>'],
+    soul:['PERSONALITY ENGINE','Shape MISS SARA','Customize the assistant instructions and response style.','<div class="premium-panel"><h3>Personality settings</h3><p>Update the system personality prompt used by the current assistant.</p><div class="premium-actions"><button class="btn" data-action="soul">EDIT SOUL PROFILE</button></div></div>'],
+    voice:['VOICE STUDIO','Talk Naturally with MISS SARA','Speak in your language, see the listening state, and hear a spoken sample.','<div class="premium-panel voice-panel"><div class="voice-orb" aria-hidden="true"><span>◉</span></div><h3>Voice controls</h3><p>Tap the microphone and speak clearly. Your browser or Android speech service handles recognition; available languages depend on the device.</p><div class="premium-actions"><button class="btn" data-action="mic">🎙 START LISTENING</button><button class="btn ghost" data-action="speak-demo">▶ HEAR SAMPLE</button><button class="btn red" data-action="stop-speech">STOP AUDIO</button></div><label for="voiceRate">Speaking speed</label><input id="voiceRate" type="range" min="0.75" max="1.25" step="0.05" value="1"><div class="voice-hint">Current language: <b id="voiceLangLabel"></b> · Use the EN button on Home to switch configured languages.</div></div><div class="premium-panel"><h3>Voice troubleshooting</h3><ul class="premium-list"><li>Allow microphone permission when prompted.</li><li>Use Chrome on Android if speech recognition is unavailable.</li><li>For clearer answers, speak one question at a time and reduce background noise.</li></ul><button class="btn ghost" data-action="settings">OPEN VOICE & AI SETTINGS</button></div>'],
+    vision:['VISION LAB','Show MISS SARA what you see','Take a photo or choose an image. Ask about diagrams, screenshots, documents, objects, signs or a scene. Nothing is sent until you press ANALYZE IMAGE.','<div class="premium-panel vision-panel"><h3>1 · Choose an image</h3><p>Use your camera to take a fresh photo, or select an existing image. Keep private or sensitive information out of images you do not want to share with your AI provider.</p><div class="vision-pick-grid"><label class="vision-pick" for="visionCamera">📷 <b>TAKE PHOTO</b><small>Opens your device camera</small></label><label class="vision-pick" for="visionGallery">▧ <b>CHOOSE IMAGE</b><small>Select from your gallery</small></label></div><input class="visually-hidden" id="visionCamera" type="file" accept="image/*" capture="environment"><input class="visually-hidden" id="visionGallery" type="file" accept="image/*"><div id="visionPreviewWrap" class="vision-preview-wrap hide"><img id="visionPreview" alt="Selected image preview"><div id="visionFileName" class="voice-hint"></div><button class="btn ghost sm" data-action="clear-image">REMOVE IMAGE</button></div></div><div class="premium-panel"><h3>2 · What should I understand?</h3><label for="visionMode">Choose a task</label><select id="visionMode"><option value="Describe this image clearly. Separate visible facts from guesses.">Describe image</option><option value="Explain this diagram or chart step by step. Read labels and describe relationships. If text is unclear, say so.">Explain a diagram / chart</option><option value="Read visible text (OCR) and explain it. Preserve numbers and labels carefully; mark uncertain text.">Read text / screenshot</option><option value="Explain this document page in simple language, including headings, tables and important details.">Explain document</option><option value="Identify visible objects and explain their likely purpose without guessing beyond the image.">Understand objects</option><option value="Describe the scene and useful visible details. Do not infer private traits or unseen facts.">Understand a scene</option><option value="Give a simple step-by-step explanation of what is visible and what I should notice.">Explain simply</option></select><label for="visionQuestion">Your question (optional)</label><textarea id="visionQuestion" rows="3" placeholder="Example: Explain this diagram in simple Bangla."></textarea><div class="vision-consent">🔒 Privacy: the selected image is sent to the AI provider configured in Settings only after you tap Analyze. It is not uploaded to a TS server by this feature.</div><div class="premium-actions"><button class="btn" id="analyzeVision">✦ ANALYZE IMAGE</button><button class="btn red" data-action="clear-image">CLEAR</button><button class="btn ghost" data-action="settings">AI SETTINGS</button></div><div id="visionResult" class="vision-result hide" aria-live="polite"></div></div>'],
+    tasks:['TASK AUTOMATION','Plan and Track Work','Manage the current Today Tasks list and reusable routines.','<div class="premium-panel"><h3>Today tasks</h3><p>Your current task list is saved in this browser.</p><div class="premium-actions"><button class="btn" data-action="tasks">EDIT TODAY TASKS</button><button class="btn ghost" data-action="routines">OPEN ROUTINES</button></div></div>'],
+    control:['CONTROL CENTER','System Configuration','Manage API providers, permissions, connectors, plan codes and app preferences.','<div class="premium-panel"><h3>System controls</h3><p>API keys are stored in this browser. Never share your keys or commit them to source control.</p><div class="premium-actions"><button class="btn" data-action="settings">OPEN SETTINGS</button></div></div>']};
+  const data=map[view];
+  if(data){pane.innerHTML=premiumShell(data[0],data[1],data[2],data[3]);bindPremiumActions();if(view==='vision')bindVisionUI();if(view==='voice')bindVoiceUI();return;}
+  const mod=PREMIUM_MODULES.find(x=>x.id===view); if(mod){renderModuleDetail(mod);return;}
+  pane.innerHTML=premiumShell('MODULE','Module unavailable','Choose a module from the navigation.','');
+}
+function renderPlans(){
+  const cards=PREMIUM_MODULES.map((m,i)=>`<button class="premium-card plan-card" data-module="${m.id}"><span class="picon">${m.i}</span><strong>PLAN ${String(i+1).padStart(2,'0')} · ${m.n}</strong><small>${m.d}</small><span class="tag">VIEW PLAN DETAILS ↗</span></button>`).join('');
+  $('premiumView').innerHTML=premiumShell('PREMIUM COLLECTION','17 Dedicated Experience Plans','Each plan has its own feature page and visual identity. Open a plan to review its scope and purchase options.',`<div class="premium-toolbar"><span class="chip">17 SEPARATE PLAN PAGES</span><span class="chip">ACTIVE: ${Plan.label()}</span></div><div class="premium-grid">${cards}</div><div class="lock-note" style="margin-top:14px">Purchase and activation note: this v10 package currently validates FREE / PLAN 1 / PLAN 2 / OWNER coupon entitlements. These 17 plan pages are the catalogue and design layer; separate per-plan payment verification and server-side entitlement mapping must be added before any of the 17 can be sold as independently activated subscriptions.</div><div class="premium-actions"><button class="btn" data-action="buy">CONTACT TO PURCHASE</button><button class="btn ghost" data-action="settings">REDEEM EXISTING CODE</button></div>`);
+  $('premiumView').querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const m=PREMIUM_MODULES.find(x=>x.id===b.dataset.module);if(m)renderModuleDetail(m);}));bindPremiumActions();
+}
+function renderModuleDetail(m){
+  const i=PREMIUM_MODULES.indexOf(m)+1, feats=m.f.map(x=>`<li>${x}</li>`).join('');
+  if(!Plan.hasModule(m.id)){
+    $('premiumView').innerHTML=`<button class="btn ghost sm premium-back" data-action="plans">← ALL 17 PLANS</button>`+premiumShell(`PLAN ${String(i).padStart(2,'0')} / LOCKED`,m.n,m.d,`<div class="card"><div class="mut">This plan is locked. Enter the code you were given for this plan.</div><input id="pmCode" placeholder="XXXX-XXXX-XXXX-XXXX" style="margin-top:10px"><div style="margin-top:10px"><button class="btn sm" id="pmRedeem">UNLOCK PLAN</button></div><div id="pmMsg" class="mut" style="margin-top:8px"></div></div>`);
+    const go=$('pmRedeem'); if(go) go.onclick=async()=>{ const msg=await redeem($('pmCode').value); $('pmCode').value=''; $('pmMsg').textContent=msg; if(msg.startsWith('Unlocked')) renderModuleDetail(m); };
+    bindPremiumActions();
+    return;
+  }
+  $('premiumView').innerHTML=`<button class="btn ghost sm premium-back" data-action="plans">← ALL 17 PLANS</button>`+premiumShell(`PLAN ${String(i).padStart(2,'0')} / PREMIUM MODULE`,m.n,m.d,`<div class="premium-statgrid"><div class="premium-stat"><b>${String(i).padStart(2,'0')}</b><span>PLAN NUMBER</span></div><div class="premium-stat"><b>独立</b><span>DEDICATED PAGE</span></div><div class="premium-stat"><b>${Plan.get()?Plan.label():'FREE'}</b><span>CURRENT ENTITLEMENT</span></div><div class="premium-stat"><b>READY</b><span>UI PREVIEW</span></div></div><div class="premium-panel"><h3>PLAN FEATURES</h3><ul class="premium-list">${feats}</ul><p>Feature execution depends on the connected provider, device permissions and backend support. This page is the dedicated UI for this module.</p></div><div class="premium-panel"><h3>ACCESS & PURCHASE</h3><div class="lock-note">The current v10 coupon system supports Plan 1 and Plan 2 as shared tiers. A separate plan-specific purchase is not activated by this catalogue yet. Payment verification and plan mapping must be configured on the server.</div><div class="premium-actions"><button class="btn" data-action="buy">ASK ABOUT THIS PLAN</button><button class="btn ghost" data-action="settings">REDEEM CODE</button></div></div>`);
+  bindPremiumActions();
+}
+let visionImageData = '', visionImageName = '';
+function clearVisionImage(){
+  visionImageData=''; visionImageName='';
+  const wrap=$('visionPreviewWrap'), img=$('visionPreview'), result=$('visionResult');
+  if(wrap)wrap.classList.add('hide'); if(img)img.removeAttribute('src');
+  ['visionCamera','visionGallery'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  if(result){result.classList.add('hide');result.textContent='';}
+}
+function bindVisionUI(){
+  const camera=$('visionCamera'), gallery=$('visionGallery');
+  const picked=async ev=>{
+    const file=ev.target.files&&ev.target.files[0]; if(!file)return;
+    if(!/^image\/(jpeg|png|webp|gif)$/i.test(file.type)){say('Please choose a JPEG, PNG, WEBP or GIF image.');ev.target.value='';return;}
+    if(file.size>15*1024*1024){say('Image is too large. Choose an image under 15 MB.');ev.target.value='';return;}
+    try{
+      const raw=await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(new Error('Could not read this image.'));fr.readAsDataURL(file);});
+      const im=await new Promise((resolve,reject)=>{const x=new Image();x.onload=()=>resolve(x);x.onerror=()=>reject(new Error('Could not open this image.'));x.src=raw;});
+      const max=1600, scale=Math.min(1,max/Math.max(im.width,im.height)), w=Math.max(1,Math.round(im.width*scale)), hgt=Math.max(1,Math.round(im.height*scale));
+      const c=document.createElement('canvas');c.width=w;c.height=hgt;c.getContext('2d').drawImage(im,0,0,w,hgt);
+      visionImageData=c.toDataURL('image/jpeg',.86); visionImageName=file.name||'camera-photo.jpg';
+      $('visionPreview').src=visionImageData; $('visionPreviewWrap').classList.remove('hide'); $('visionFileName').textContent=visionImageName+' · '+w+' × '+hgt+' · ready to analyze';
+      const out=$('visionResult');out.classList.add('hide');out.textContent='';
+    }catch(err){say(err.message||'Could not prepare image.');}
+  };
+  if(camera)camera.addEventListener('change',picked); if(gallery)gallery.addEventListener('change',picked);
+  const btn=$('analyzeVision'); if(btn)btn.addEventListener('click',async()=>{
+    if(!visionImageData){say('First take a photo or choose an image.');return;}
+    const out=$('visionResult'), mode=$('visionMode')?.value||'Describe this image clearly.', question=$('visionQuestion')?.value.trim()||'';
+    const prompt=mode+(question?'\n\nUser question: '+question:'\n\nExplain in clear, simple language. Use headings or numbered steps when useful. Do not invent unreadable labels or details.');
+    btn.disabled=true;btn.textContent='ANALYZING…';out.classList.remove('hide');out.textContent='MISS SARA is examining the image…';setState(3);
+    try{
+      const system='You are MISS SARA, a careful visual assistant. Reply in the same language as the user question, or in Bengali when the user uses Bengali. Explain diagrams, charts, screenshots and images in plain, well-organized steps. First state what is clearly visible; then explain relationships and meaning. Read labels and numbers carefully. Never invent text, objects, context or certainty. If something is blurry, cropped or ambiguous, say exactly what is unclear and ask for a clearer photo if needed. For diagrams, explain the title, components, arrows, sequence and overall idea. Keep the answer accessible to a beginner.';
+      const answer=await LLM.analyzeImage(system,prompt,visionImageData);out.textContent=answer||'The provider returned no text. Try another vision-capable model.';say('Image analysis completed.');
+    }catch(err){out.textContent='Could not analyze this image. '+(err.message||String(err));}
+    finally{btn.disabled=false;btn.textContent='✦ ANALYZE IMAGE';setState(0);}
+  });
+}
+function bindVoiceUI(){
+  const rate=$('voiceRate'), label=$('voiceLangLabel'); if(rate){rate.value=store.get('voice_rate','1');rate.addEventListener('input',()=>store.set('voice_rate',rate.value));}
+  if(label)label.textContent=voiceLang();
+}
+
+function bindPremiumActions(){
+  $('premiumView').querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>{
+    const a=b.dataset.action;
+    if(a==='plans')return renderPlans();
+    if(a==='buy')return openUrl(CFG.BUY_URL);
+    if(a==='settings')return settings();
+    if(a==='chat'){setPremiumView('home');nodeClick(1);return;}
+    if(a==='memory')return editNote('MEMORY // what the AI remembers','memory','');
+    if(a==='soul')return editNote('SOUL // the AI personality','soul','You are TS Agent, a helpful assistant.');
+    if(a==='tasks')return editNote('TODAY.TASKS // one per line','tasks','',refreshTasks);
+    if(a==='routines')return say('Try the command: routines');
+    if(a==='mic')return listen();
+    if(a==='speak-demo')return speak('Hello. I am Miss Sara. Tell me what you would like to understand.', voiceLang());
+    if(a==='stop-speech')return stopSpeak();
+    if(a==='clear-image')return clearVisionImage();
+  }));
+}
+function initPremiumNavigation(){
+  document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>setPremiumView(b.dataset.view)));
+}
+
+async function init() {
+  startRain(); startStage(); boot(); initPremiumNavigation(); refreshCloudPlanArtwork(); setState(0); refreshTasks(); refreshNews(); tick(); setInterval(tick, 1000); setInterval(refreshNews, 900000); scheduleReminders();
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   $('lang').textContent = voiceLang().split('-')[0].toUpperCase(); $('lang').onclick = () => say('Voice language: ' + toggleLang());
   $('mic').onclick = listen; $('abort').onclick = abortAll; $('send').onclick = () => { const v = $('chat').value; $('chat').value = ''; submit(v); };
   $('chat').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('send').click(); });
@@ -658,3 +890,25 @@ async function init() {
 }
 if (HAS_DOM) window.addEventListener('DOMContentLoaded', init);
 if (typeof module !== 'undefined') module.exports = { parseCommand, packCompile, packCanonical, parseSlots, normCode, sha256hex, memLinks, store, Plan, Owner, redeem, CFG };
+<<<<<<< HEAD
+=======
+
+/* ---------- signal scan radar (home, like the Android app) ---------- */
+(function radar(){
+  const c=document.getElementById('radarc'); if(!c) return; const x=c.getContext('2d');
+  let ang=0;
+  function draw(){
+    const w=c.width,h=c.height,cx=w/2,cy=h-8,R=Math.min(w/2,h)-10;
+    x.clearRect(0,0,w,h);
+    x.strokeStyle='rgba(0,255,156,.35)';x.lineWidth=1;
+    for(let i=1;i<=3;i++){x.beginPath();x.arc(cx,cy,R*i/3,Math.PI,2*Math.PI);x.stroke();}
+    x.beginPath();x.moveTo(cx-R,cy);x.lineTo(cx+R,cy);x.stroke();
+    const g=x.createLinearGradient(cx,cy,cx+R*Math.cos(ang),cy-R*Math.sin(ang));
+    x.fillStyle='rgba(0,255,156,.18)';x.beginPath();x.moveTo(cx,cy);x.arc(cx,cy,R,-ang,-ang+0.5);x.closePath();x.fill();
+    x.strokeStyle='#00ff9c';x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+R*Math.cos(ang),cy-R*Math.sin(ang));x.stroke();
+    x.fillStyle='#00ff9c';x.beginPath();x.arc(cx+R*.55*Math.cos(ang*3),cy-R*.55*Math.sin(ang*3),3,0,7);x.fill();
+    ang+=0.03; if(!matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(draw);
+  }
+  draw();
+})();
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb

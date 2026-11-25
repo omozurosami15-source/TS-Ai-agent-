@@ -11,7 +11,11 @@ object Persona {
         val owner = Entitlements.isOwner(act)
         val custom = prefs.getString("comp_name", "")?.trim().orEmpty()
         val name = if (owner) "Sara" else custom.takeIf { it.isNotBlank() && !it.equals("sara", ignoreCase = true) } ?: "Mira"
+<<<<<<< HEAD
         val call = prefs.getString("comp_call", "")?.trim().orEmpty().ifBlank { "jaan" }
+=======
+        val call = if (prefs.getBoolean("ramadan_mode", false)) "" else prefs.getString("comp_call", "")?.trim().orEmpty().ifBlank { "" }
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         val tasks = (prefs.getString("tasks", "") ?: "").trim()
         var b = "\n\nCompanion mode (the user is an adult and turned this on): You are $name, the user's affectionate partner-style companion inside TS Agent. " +
             "Call him \"$call\". He unlocked his private owner mode, so you are talking to the person who owns this phone; greet him like someone you know well. You know him from the memory section, so mention what you know about him naturally. " +

@@ -54,10 +54,56 @@ object LocalBrain {
         }
     }
 
+<<<<<<< HEAD
+=======
+    /** Short greetings and thanks: answered on the phone, so they never use up an AI call. Only exact short phrases match. */
+    private val smallTalk: Map<String, String> = mapOf(
+        "hi" to "Hi! How can I help you?",
+        "hello" to "Hello! What do you need?",
+        "hey" to "Hey! What do you need?",
+        "good morning" to "Good morning! Ready when you are.",
+        "good night" to "Good night! Sleep well.",
+        "thanks" to "You are welcome!",
+        "thank you" to "You are welcome!",
+        "হাই" to "হাই! কী করতে পারি বলো।",
+        "হ্যালো" to "হ্যালো! বলো, কী লাগবে?",
+        "হ্যালো সারা" to "হ্যালো! বলো, আমি শুনছি।",
+        "হাই সারা" to "হাই! বলো, কী করতে পারি?",
+        "সুপ্রভাত" to "সুপ্রভাত! বলো, আজ কী করবে?",
+        "শুভ রাত্রি" to "শুভ রাত্রি! ভালো ঘুমাও।",
+        "ধন্যবাদ" to "ধন্যবাদ! আর কিছু লাগলে বলো।",
+        "কেমন আছো" to "আমি ভালো আছি। তুমি কেমন আছো?",
+        "কেমন আছ" to "আমি ভালো আছি। তুমি কেমন আছ?"
+    )
+
+    private fun torch(ctx: Context, on: Boolean): String {
+        return try {
+            val cm = ctx.getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
+            val id = cm.cameraIdList.firstOrNull {
+                cm.getCameraCharacteristics(it).get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            } ?: return "This phone has no torch."
+            cm.setTorchMode(id, on)
+            if (on) "Torch on" else "Torch off"
+        } catch (e: Exception) {
+            "Could not change the torch: " + e.message
+        }
+    }
+
+    private fun volume(ctx: Context, dir: Int): String {
+        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, dir, android.media.AudioManager.FLAG_SHOW_UI)
+        return if (dir == android.media.AudioManager.ADJUST_RAISE) "Volume up" else "Volume down"
+    }
+
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     private fun run(act: Context, raw: String): String? {
         val t = raw.trim().trimEnd('.', '!', '?')
         val l = t.lowercase()
         if (l.isEmpty()) return null
+<<<<<<< HEAD
+=======
+        smallTalk[l]?.let { return it }
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         val svc = AgentService.instance
         fun launch(i: Intent) = act.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         fun view(url: String, msg: String): String { launch(Intent(Intent.ACTION_VIEW, Uri.parse(url))); return msg }
@@ -83,6 +129,30 @@ object LocalBrain {
             return Autoplay.start(act, m.groupValues[1].toIntOrNull() ?: 30)
         }
 
+<<<<<<< HEAD
+=======
+        // Phone facts and simple controls: answered on the phone, no AI call.
+        when {
+            l in setOf("time", "what time is it", "what's the time", "current time", "কয়টা বাজে", "সময় কত", "এখন কয়টা বাজে") ->
+                return java.text.SimpleDateFormat("h:mm a", java.util.Locale.ENGLISH).format(java.util.Date())
+            l in setOf("day", "what day is it", "today's day", "আজ কি বার", "আজকে কি বার", "আজ কী বার", "কি বার", "কী বার") -> {
+                val bn = mapOf("Saturday" to "শনিবার", "Sunday" to "রবিবার", "Monday" to "সোমবার", "Tuesday" to "মঙ্গলবার", "Wednesday" to "বুধবার", "Thursday" to "বৃহস্পতিবার", "Friday" to "শুক্রবার")
+                val en = java.text.SimpleDateFormat("EEEE", java.util.Locale.ENGLISH).format(java.util.Date())
+                return "Today is " + en + " (" + (bn[en] ?: en) + ")."
+            }
+            l in setOf("date", "today's date", "what is the date", "what's the date", "আজ কত তারিখ", "আজ কি তারিখ", "আজকের তারিখ") ->
+                return java.text.SimpleDateFormat("EEEE, d MMMM yyyy", java.util.Locale.ENGLISH).format(java.util.Date())
+            l in setOf("battery", "battery level", "battery status", "ব্যাটারি কত", "ব্যাটারি কতো") -> {
+                val bm = act.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
+                return "Battery: " + bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) + "%"
+            }
+            l in setOf("torch on", "turn on torch", "flashlight on", "টর্চ জ্বালাও", "টর্চ চালু করো") -> return torch(act, true)
+            l in setOf("torch off", "turn off torch", "flashlight off", "টর্চ বন্ধ করো", "টর্চ বন্ধ") -> return torch(act, false)
+            l in setOf("volume up", "increase volume", "ভলিউম বাড়াও") -> return volume(act, android.media.AudioManager.ADJUST_RAISE)
+            l in setOf("volume down", "decrease volume", "ভলিউম কমাও") -> return volume(act, android.media.AudioManager.ADJUST_LOWER)
+        }
+
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         when (l) {
             "back", "go back" -> return screen("Back") { it.back() }
             "home", "go home" -> return screen("Home") { it.home() }

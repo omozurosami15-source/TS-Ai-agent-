@@ -64,7 +64,29 @@ class RadarPanel(ctx: Context) : View(ctx) {
             dot.color = Color.argb((70 + 150 * maxOf(lit, pulse * 0.4f)).toInt().coerceIn(0, 255), 0, 255, 156)
             c.drawCircle(x, y, (2.2f + 2.4f * lit) * d, dot)
         }
+<<<<<<< HEAD
         c.drawText("SIGNAL SCAN", pad + 10 * d, pad + 18 * d, label)
+=======
+        label.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        label.textSize = 14f * d
+        c.drawText("SIGNAL SCAN", pad + 12 * d, pad + 22 * d, label)
+        // signal bars (bottom left) and status (bottom right)
+        for (i in 0 until 3) {
+            val bh = (9 + 7 * i) * d
+            val bx = pad + 12 * d + i * 8 * d
+            dot.color = Color.argb(235, 0, 255, 156)
+            c.drawRect(bx, h - pad - 10 * d - bh, bx + 5.5f * d, h - pad - 10 * d, dot)
+        }
+        val chx = w - pad - 86 * d; val chy = h - pad - 18 * d
+        dot.color = Color.argb(255, 0, 230, 120)
+        c.drawCircle(chx, chy, 8.5f * d, dot)
+        ring.strokeWidth = 2f * d; ring.color = Color.argb(255, 2, 16, 10)
+        c.drawLine(chx - 4f * d, chy, chx - 1f * d, chy + 3.5f * d, ring); c.drawLine(chx - 1f * d, chy + 3.5f * d, chx + 4.5f * d, chy - 3.5f * d, ring)
+        ring.strokeWidth = 1f * d; ring.color = Color.argb(90, 0, 255, 156)
+        label.textSize = 12f * d; label.color = Color.WHITE
+        c.drawText("Status: OK", chx + 13f * d, chy + 4.5f * d, label)
+        label.color = Color.argb(230, 0, 255, 156)
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         postInvalidateOnAnimation()
     }
 }

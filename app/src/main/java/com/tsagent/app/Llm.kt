@@ -15,7 +15,11 @@ import java.net.URL
 object Llm {
     val PROVIDERS = listOf("anthropic", "openai", "gemini", "grok", "custom", "cloud")
     /** Only providers that have free models are shown in the app. */
+<<<<<<< HEAD
     val SHOWN = listOf("gemini", "custom", "cloud")
+=======
+    val SHOWN = listOf("gemini", "custom", "cloud", "local")
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("cfg", Context.MODE_PRIVATE)
 
     /** Logged in to the server = the server's free AI is used automatically. Otherwise the phone's own key is used. */
@@ -34,28 +38,49 @@ object Llm {
         when (p) {
             "anthropic" -> prefs(ctx).getString("apikey", "")
             "cloud" -> prefs(ctx).getString("svtoken", "")
+<<<<<<< HEAD
+=======
+            "local" -> "local"   // the on-phone model needs no API key
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             else -> prefs(ctx).getString("key_$p", "")
         }.orEmpty().trim()
 
     fun model(ctx: Context, p: String = provider(ctx)): String =
+<<<<<<< HEAD
         prefs(ctx).getString("model_$p", "").orEmpty().trim().ifBlank { when (p) { "anthropic" -> "claude-sonnet-5-5"; "cloud" -> "2"; else -> "" } }
+=======
+        prefs(ctx).getString("model_$p", "").orEmpty().trim().ifBlank { when (p) { "anthropic" -> "claude-sonnet-5-5"; "cloud" -> "2"; "local" -> "qwen2.5-0.5b-instruct"; else -> "" } }
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
 
     private fun base(ctx: Context, p: String): String = when (p) {
         "openai" -> "https://api.openai.com/v1"
         "grok" -> "https://api.x.ai/v1"
         "custom" -> prefs(ctx).getString("llm_base", "").orEmpty().trim()
+<<<<<<< HEAD
+=======
+        // the Qwen model runs on this phone through llama-server (OpenAI-compatible): http://127.0.0.1:8080/v1
+        "local" -> prefs(ctx).getString("local_url", "").orEmpty().trim().ifBlank { "http://127.0.0.1:8080/v1" }
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         else -> ""
     }.trimEnd('/')
 
     fun configured(ctx: Context): Boolean {
         val p = provider(ctx)
+<<<<<<< HEAD
         return key(ctx, p).isNotEmpty() && model(ctx, p).isNotEmpty() && (p != "custom" || base(ctx, p).startsWith("https://")) && (p != "cloud" || Config.enabled())
+=======
+        return key(ctx, p).isNotEmpty() && model(ctx, p).isNotEmpty() && (p != "custom" || base(ctx, p).startsWith("https://")) && (p != "cloud" || Config.enabled()) && (p != "local" || base(ctx, p).startsWith("http://127.0.0.1") || base(ctx, p).startsWith("http://localhost"))
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     }
 
     private fun http(method: String, url: String, headers: Map<String, String>, body: String? = null): Pair<Int, String> {
         val c = URL(url).openConnection() as HttpURLConnection
         c.requestMethod = method
+<<<<<<< HEAD
         c.connectTimeout = 20000
+=======
+        c.connectTimeout = 15000
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         c.readTimeout = 90000
         headers.forEach { (k, v) -> c.setRequestProperty(k, v) }
         if (body != null) { c.doOutput = true; c.outputStream.use { it.write(body.toByteArray()) } }
@@ -72,9 +97,35 @@ object Llm {
 
     /** True when the error means this key is out of quota, rate limited or rejected: the next key is tried. */
     fun quotaLike(e: Exception): Boolean =
+<<<<<<< HEAD
         Regex("429|401|402|403|quota|rate|limit|exhaust|insufficient|billing|credit", RegexOption.IGNORE_CASE).containsMatchIn(e.message ?: "")
 
     fun complete(ctx: Context, system: String, prompt: String, maxTokens: Int, search: Boolean): String {
+=======
+        Regex("429|401|402|403|400|quota|rate|limit|exhaust|insufficient|billing|credit|not valid|invalid|API_KEY|UNAUTH|PERMISSION", RegexOption.IGNORE_CASE).containsMatchIn(e.message ?: "")
+
+    private val answerCache = LinkedHashMap<String, Pair<Long, String>>()
+
+    fun complete(ctx: Context, system0: String, prompt: String, maxTokens0: Int, search0: Boolean): String {
+        // The active plan's own AI system: specialist instructions, answer length and web search.
+        val system = system0 + PlanAi.systemBlock(ctx)
+        val maxTokens = PlanAi.tokens(ctx, maxTokens0)
+        val search = search0 || PlanAi.search(ctx, maxTokens0)
+        // The same question asked again within 10 minutes is answered from memory: no extra AI call.
+        val cacheKey = (system + "\u0001" + prompt + "\u0001" + maxTokens + search).hashCode().toString()
+        if (!search) synchronized(answerCache) {
+            answerCache[cacheKey]?.let { (at, text) -> if (System.currentTimeMillis() - at < 600_000L) return text }
+        }
+        val answer = completeNow(ctx, system, prompt, maxTokens, search)
+        if (!search && answer.isNotBlank()) synchronized(answerCache) {
+            answerCache[cacheKey] = System.currentTimeMillis() to answer
+            while (answerCache.size > 40) answerCache.remove(answerCache.keys.first())
+        }
+        return answer
+    }
+
+    private fun completeNow(ctx: Context, system: String, prompt: String, maxTokens: Int, search: Boolean): String {
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         val first = provider(ctx)
         fun usable(x: String): Boolean =
             if (x == "cloud") Config.enabled() && key(ctx, "cloud").isNotEmpty()
@@ -90,17 +141,31 @@ object Llm {
                 catch (e: Exception) { last = e; if (!quotaLike(e)) break }
             }
         }
+<<<<<<< HEAD
         throw last ?: Exception("AI is not available right now")
+=======
+        val reason = (last?.message ?: "").take(120)
+        throw Exception("AI is not available right now (key, quota or internet). Phone commands still work. " + reason)
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
     }
 
     private fun completeWith(ctx: Context, p: String, system: String, prompt: String, maxTokens: Int, search: Boolean, keyOverride: String? = null): String {
         val key = keyOverride ?: key(ctx, p)
+<<<<<<< HEAD
         val model = model(ctx, p)
         return when (p) {
             "anthropic" -> anthropic(key, model, system, prompt, maxTokens, search)
             "cloud" -> cloud(ctx, key, model, system, prompt)
             "gemini" -> gemini(key, model, system, prompt)
             else -> openAiCompatible(base(ctx, p), key, model, system, prompt)
+=======
+        val model = PlanAi.modelFor(ctx, p).ifBlank { model(ctx, p) }
+        return when (p) {
+            "anthropic" -> anthropic(key, model, system, prompt, maxTokens, search)
+            "cloud" -> cloud(ctx, key, model, system, prompt)
+            "gemini" -> gemini(key, model, system, prompt, maxTokens)
+            else -> openAiCompatible(base(ctx, p), key, model, system, prompt, maxTokens)
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         }
     }
 
@@ -133,8 +198,13 @@ object Llm {
         return sb.toString()
     }
 
+<<<<<<< HEAD
     private fun openAiCompatible(base: String, key: String, model: String, system: String, prompt: String): String {
         val body = JSONObject().put("model", model).put("messages", JSONArray()
+=======
+    private fun openAiCompatible(base: String, key: String, model: String, system: String, prompt: String, maxTokens: Int): String {
+        val body = JSONObject().put("model", model).put("max_tokens", maxTokens.coerceIn(256, 4096)).put("messages", JSONArray()
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
             .put(JSONObject().put("role", "system").put("content", system))
             .put(JSONObject().put("role", "user").put("content", prompt))).toString()
         val (code, text) = http("POST", "$base/chat/completions",
@@ -145,10 +215,18 @@ object Llm {
         return if (c is JSONArray) (0 until c.length()).joinToString("") { c.getJSONObject(it).optString("text") } else msg.optString("content")
     }
 
+<<<<<<< HEAD
     private fun gemini(key: String, model: String, system: String, prompt: String): String {
         val body = JSONObject()
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
             .put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text", prompt))))).toString()
+=======
+    private fun gemini(key: String, model: String, system: String, prompt: String, maxTokens: Int): String {
+        val body = JSONObject()
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
+            .put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text", prompt)))))
+            .put("generationConfig", JSONObject().put("maxOutputTokens", maxTokens.coerceIn(256, 4096))).toString()
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         val (code, text) = http("POST", "https://generativelanguage.googleapis.com/v1beta/models/${model.removePrefix("models/")}:generateContent",
             mapOf("x-goog-api-key" to key, "Content-Type" to "application/json"), body)
         if (code !in 200..299) throw Exception("AI error $code: ${text.take(160)}")
@@ -164,7 +242,11 @@ object Llm {
     fun completeVision(ctx: Context, system: String, prompt: String, images: List<Pair<String, ByteArray>>, maxTokens: Int): String {
         val first = provider(ctx)
         val order = (listOf(first, "anthropic", "gemini", "openai", "grok", "custom"))
+<<<<<<< HEAD
             .distinct().filter { it != "cloud" && key(ctx, it).isNotEmpty() && model(ctx, it).isNotEmpty() }
+=======
+            .distinct().filter { it != "cloud" && it != "local" && key(ctx, it).isNotEmpty() && model(ctx, it).isNotEmpty() }
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
         if (order.isEmpty()) throw Exception("Sara Watch needs your own AI key (Claude, OpenAI, Gemini, Grok or custom) with a model chosen")
         var last: Exception? = null
         for (p in order) {

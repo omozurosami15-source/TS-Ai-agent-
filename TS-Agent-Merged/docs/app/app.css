@@ -145,3 +145,17 @@ input:focus,textarea:focus{box-shadow:0 0 0 3px rgba(0,255,156,.15)}
   .vision-result{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.voice-orb{animation:none}.premium-panel{animation:none}}
+<<<<<<< HEAD
+=======
+
+
+/* Account-plan homepage artwork: existing Matrix layout and all navigation remain intact. */
+.plan-badge{max-width:min(56vw,300px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:5px;padding:4px 8px;color:var(--mut);font:700 9px/1.3 ui-monospace,monospace;letter-spacing:.07em;background:#03140ed9}
+.plan-badge.paid{border-color:#c7a75b;color:#f0d99b;box-shadow:0 0 14px #d4a84e22}
+#center{isolation:isolate;overflow:hidden;border-radius:10px}
+#center:before{content:"";position:absolute;z-index:-1;inset:2% 4% 15%;background-image:var(--plan-art);background-position:center;background-repeat:no-repeat;background-size:contain;opacity:.72;filter:drop-shadow(0 0 18px #00e6a033);transition:opacity .35s ease,filter .35s ease}
+#center[data-active-plan]:before{opacity:.82;filter:drop-shadow(0 0 22px #d4a84e33)}
+#center:after{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 38%,#020604a8 100%)}
+#stage{position:relative;z-index:1}#controls{z-index:2}
+@media(max-width:520px){.plan-badge{font-size:8px;padding:4px 6px;max-width:48vw}#center:before{inset:3% 1% 18%;opacity:.7}}
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb

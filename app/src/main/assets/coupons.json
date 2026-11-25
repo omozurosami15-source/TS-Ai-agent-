@@ -53,6 +53,111 @@
    "plan": "p2",
    "days": 365,
    "id": "c009"
+<<<<<<< HEAD
+=======
+  },
+  {
+   "h": "c60dfee4d78ec713f697c2413452ffee9699d6d7d14b8011dca2d22e2b87cf4d",
+   "plan": "module:neural",
+   "days": 0,
+   "id": "c010"
+  },
+  {
+   "h": "0fe82862e0a0fda44d6449e867c17c10cdf33deeb6150b9c9dac483fd0f79de1",
+   "plan": "module:voice",
+   "days": 0,
+   "id": "c011"
+  },
+  {
+   "h": "198c086a59d1f1b0033d9cf2868cf495401dc3c4c0ba2612f3befb24e7ddf060",
+   "plan": "module:memory",
+   "days": 0,
+   "id": "c012"
+  },
+  {
+   "h": "1ded26c59a50bef68b994ac0f99c27145fa699b8fda42dc67318e4792960ff6c",
+   "plan": "module:soul",
+   "days": 0,
+   "id": "c013"
+  },
+  {
+   "h": "4d59f958270d902b1cee83d528f0776a15d380ba99a2d58b3d32d169b68778cd",
+   "plan": "module:vision",
+   "days": 0,
+   "id": "c014"
+  },
+  {
+   "h": "9df557d757fc1a6620225b63d37b3bf1f09bcd3b1d4601e9942979b85d789524",
+   "plan": "module:web",
+   "days": 0,
+   "id": "c015"
+  },
+  {
+   "h": "dd132ebf69ff7b998d3a3c40c37cda004fad337ed18fa2f1173e14c797cf13df",
+   "plan": "module:code",
+   "days": 0,
+   "id": "c016"
+  },
+  {
+   "h": "2ad27e08ce322dc38169c029e402f511b6477facd5a79e62fce6bafa12338115",
+   "plan": "module:files",
+   "days": 0,
+   "id": "c017"
+  },
+  {
+   "h": "3b75a8d28f9bcd46a3f067e818a9b819765b818bb40b63c541de355e7d7fcaa7",
+   "plan": "module:tasks",
+   "days": 0,
+   "id": "c018"
+  },
+  {
+   "h": "95a13d74ed3ba9f7e93333e031ad48b561d0f0ad8e6da2e626caf1128f7dd6a7",
+   "plan": "module:notes",
+   "days": 0,
+   "id": "c019"
+  },
+  {
+   "h": "87bb58eb087be7d9448d1599dd0fbefffed8ff1800f8a8933a2a10549d7d3fb8",
+   "plan": "module:briefing",
+   "days": 0,
+   "id": "c020"
+  },
+  {
+   "h": "8a930824bd374d70bc0e640e1dd1e762b47b1c4612eddf3c0f2135609e3045dc",
+   "plan": "module:translate",
+   "days": 0,
+   "id": "c021"
+  },
+  {
+   "h": "a0304750bde63fa85d6a46abfcf2d235cbc8b51d8840d7284cb3c95e58fa103b",
+   "plan": "module:research",
+   "days": 0,
+   "id": "c022"
+  },
+  {
+   "h": "9a91c33a2d9c424dfd961b464ff488994f33740dc727921e61024fad6c6290e2",
+   "plan": "module:calendar",
+   "days": 0,
+   "id": "c023"
+  },
+  {
+   "h": "a7161ea2dd5c947991c0264eba80baad2140073492e42d8c6721ce0a096e2499",
+   "plan": "module:reminders",
+   "days": 0,
+   "id": "c024"
+  },
+  {
+   "h": "3b7c612d9a57f99fe28a7c7c939e5f68469ba9c137ff150a17ade74b148f989d",
+   "plan": "module:security",
+   "days": 0,
+   "id": "c025"
+  },
+  {
+   "h": "3f88f13be27bb6bab49f78bf49daac75338a2cf10c06e62f1126935572f47c1d",
+   "plan": "module:analytics",
+   "days": 0,
+   "id": "c026"
+>>>>>>> 26712bef9165d438e019f5218df1752f7d2450eb
   }
  ],
  "revoked": []
