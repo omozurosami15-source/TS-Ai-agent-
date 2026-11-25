@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TS Agent - demo</title>
+<style>
+:root{--cy:#00ff9c;--vi:#00e5ff;--pk:#ff2bd6;--mut:#6fbf9a;--tx:#d4ffe8;--bg:#020604;--line:#0e4a31}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:ui-monospace,Menlo,Consolas,monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px}
+h1{font-size:18px;letter-spacing:.2em;color:var(--cy);margin:6px 0}
+.note{font-size:12px;color:var(--mut);text-align:center;max-width:520px;margin:4px 0 12px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.tabs button{background:transparent;color:var(--cy);border:1px solid var(--cy);padding:7px 12px;font:inherit;cursor:pointer;border-radius:3px}
+.tabs button.on{background:var(--cy);color:#001a0e}
+.phone{width:min(360px,94vw);height:680px;border:2px solid var(--line);border-radius:28px;background:#03100a;position:relative;overflow:hidden;box-shadow:0 0 30px rgba(0,255,156,.15)}
+.screen{position:absolute;inset:0;padding:18px 14px;opacity:0;transition:opacity .5s;pointer-events:none}
+.screen.on{opacity:1;pointer-events:auto}
+.wide{width:min(900px,96vw);min-height:520px;border:1px solid var(--line);border-radius:10px;background:#03100a;padding:16px;margin-bottom:24px}
+.orb{width:150px;height:150px;margin:18px auto;border-radius:50%;background:radial-gradient(circle at 40% 35%,#d4ffe8,#00ff9c 30%,#00e5ff 60%,rgba(0,229,255,0) 72%);animation:pulse 2.4s ease-in-out infinite;box-shadow:0 0 40px rgba(0,255,156,.5)}
+@keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 60px rgba(0,255,156,.8)}}
+.bar{border:1px solid var(--line);padding:8px;margin:8px 0;font-size:12px;border-radius:3px}
+.you{color:var(--cy)}.ag{color:var(--vi)}
+.mic{width:64px;height:64px;border-radius:50%;margin:10px auto;background:linear-gradient(135deg,#00ff9c,#00e5ff);display:grid;place-items:center;color:#021008;font-weight:700;box-shadow:0 0 22px rgba(0,255,156,.5)}
+.chip{display:inline-block;border:1px solid var(--cy);padding:2px 8px;font-size:11px;border-radius:3px;margin:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px}
+.tile{border:1px solid var(--line);padding:10px;font-size:12px;border-radius:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left}th{color:var(--cy);font-weight:400}
+.ok{color:var(--cy)}.bad{color:#ff3b5c}.btn{display:inline-block;border:1px solid var(--cy);color:var(--cy);padding:3px 8px;font-size:11px;border-radius:3px}
+.ctrl{margin-top:10px;display:flex;gap:8px;justify-content:center}
+.ctrl button{border:1px solid var(--cy);background:transparent;color:var(--cy);padding:6px 12px;font:inherit;cursor:pointer;border-radius:3px}
+</style></head><body>
+<h1>TS-AGENT · DEMO</h1>
+<p class="note">এটা শুধু দেখানোর জন্য। কোনো আসল কাজ হয় না, কোনো key লাগে না, আর কারও ফোন বা ক্যামেরায় কিছু চালু হয় না। নিচের ট্যাব দিয়ে দেখুন।</p>
+<div class="tabs">
+ <button data-t="0" class="on">1. হোম</button>
+ <button data-t="1">2. কথা বলা</button>
+ <button data-t="2">3. কাজ চলছে</button>
+ <button data-t="3">4. সেটিংস ও প্ল্যান</button>
+ <button data-t="4">5. Admin প্যানেল</button>
+</div>
+
+<div class="phone" id="phone">
+ <!-- 1 home -->
+ <div class="screen on" data-s="0">
+  <div class="chip">● ONLINE</div>
+  <div class="bar" style="margin-top:10px">[ TODAY.TASKS ] 1/3 · ▸ টাস্ক যোগ করো</div>
+  <div class="bar">[ HEADLINES ] ▸ খবর দেখাবে এখানে</div>
+  <div class="orb"></div>
+  <div style="text-align:center;font-size:12px;color:var(--mut)">Say it. Your phone does it.</div>
+  <div class="grid"><div class="tile">MEMORY</div><div class="tile">CHAT</div><div class="tile">SOUL</div><div class="tile">SETTINGS</div></div>
+ </div>
+ <!-- 2 talk -->
+ <div class="screen" data-s="1">
+  <div class="bar"><div class="you">root@ts:~$ open youtube</div><div class="ag">[ts] YouTube খুলছি।</div><div class="you">root@ts:~$ আজকের খবর</div><div class="ag">[ts] ১. ... ২. ... ৩. ...</div></div>
+  <div class="orb" style="width:110px;height:110px"></div>
+  <div class="mic">🎤</div>
+  <div style="text-align:center;font-size:12px;color:var(--mut)">মাইক চাপলে শুনবে। নিজে থেকে কথা শুরু করে না।</div>
+ </div>
+ <!-- 3 working -->
+ <div class="screen" data-s="2">
+  <div class="chip">TS&gt; অ্যাপ খুলছি: YouTube</div>
+  <div style="margin:18px 0;border:1px dashed var(--cy);height:330px;border-radius:14px;position:relative">
+    <div style="position:absolute;left:50%;top:40%;width:44px;height:44px;margin:-22px;border:2px solid var(--cy);border-radius:50%;animation:pulse 1.4s infinite"></div>
+    <div style="position:absolute;left:0;right:0;top:18%;height:2px;background:var(--cy);box-shadow:0 0 12px var(--cy)"></div>
+    <div style="padding:14px;font-size:12px;color:var(--mut)">(অন্য অ্যাপের স্ক্রিন এখানে থাকবে, ডেমোতে শুধু ছবি)</div>
+  </div>
+  <div class="ctrl"><button>■ ABORT</button></div>
+  <div style="font-size:11px;color:var(--mut);text-align:center;margin-top:8px">কাজ চলার সময় সবুজ ফ্রেম আর ABORT বাটন দেখা যায়।</div>
+ </div>
+ <!-- 4 settings & plans -->
+ <div class="screen" data-s="3">
+  <div class="bar">PLAN: FREE · কয়েন আজ 20/20</div>
+  <div class="bar">AI PROVIDER: CLOUD / tier 1</div>
+  <div class="bar">ElevenLabs voice · Reminders ON · Plan 2</div>
+  <div class="bar">Coupon code ▸ REDEEM</div>
+  <div class="bar" style="font-size:11px;color:var(--mut)">প্ল্যান: Free · Starter · Plus · Pro · Max (কয়েন বেশি, উচ্চ tier)</div>
+ </div>
+ <!-- 5 admin -->
+ <div class="screen" data-s="4">
+  <div class="bar">ADMIN · AI &amp; coins</div>
+  <table><tr><th>Provider</th><th>Status</th></tr>
+  <tr><td>OpenRouter</td><td class="ok">OK</td></tr>
+  <tr><td>OpenAI</td><td class="bad">2 fails · quota</td></tr>
+  <tr><td>ElevenLabs</td><td class="ok">OK</td></tr></table>
+  <div class="bar" style="margin-top:10px">Telegram alert: "OpenAI: HTTP 429, quota"</div>
+ </div>
+</div>
+
+<div class="wide" style="margin-top:20px;display:none" id="admin-wide"></div>
+<script>
+const btns=[...document.querySelectorAll('.tabs button')], screens=[...document.querySelectorAll('.screen')];
+function show(i){btns.forEach(b=>b.classList.toggle('on',+b.dataset.t===i));screens.forEach(s=>s.classList.toggle('on',+s.dataset.s===i));}
+btns.forEach(b=>b.onclick=()=>show(+b.dataset.t));
+let i=0;setInterval(()=>{i=(i+1)%5;show(i)},4000);
+btns.forEach(b=>b.addEventListener('click',()=>{i=+b.dataset.t}));
+</script>
+</body></html>
