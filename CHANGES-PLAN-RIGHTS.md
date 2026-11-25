@@ -38,3 +38,6 @@
 - Read from docs/feature_switches.json in the repo (set Config.GITHUB_REPO first). No file = all ON.
 - Settings hides the controls via FeatureSwitches.apply(); Persona and Reminders check the companion switch.
 - Later: admin panel writes these values to the server instead of the GitHub file.
+
+## Build fix (v5)
+- Glyphs.kt: BitmapDrawable import corrected to android.graphics.drawable.BitmapDrawable. This fixed the compileDebugKotlin errors (unresolved reference, ImageSpan overload ambiguity).
