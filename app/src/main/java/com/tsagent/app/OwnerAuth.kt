@@ -31,6 +31,21 @@ object OwnerAuth {
 
     fun logout(ctx: Context) { prefs(ctx).edit().putLong("owner_until", 0L).apply() }
 
+    /** How long one owner login lasts: 1, 7 or 30 days (set in Security). */
+    fun ownerMillis(ctx: Context): Long = prefs(ctx).getInt("owner_days", 7).coerceIn(1, 30) * 24L * 3600 * 1000
+
+    /** Changes the passphrase. The current one must match. Returns a message to show. */
+    fun change(ctx: Context, old: String, new: String): String {
+        if (!isSet(ctx)) return "No passphrase is set yet."
+        if (new.length < 8) return "The new passphrase needs at least 8 characters."
+        val p = prefs(ctx)
+        val ok = MessageDigest.isEqual(hash(old, dec(p.getString("owner_salt", "") ?: "")), dec(p.getString("owner_hash", "") ?: ""))
+        if (!ok) return "The current passphrase is wrong."
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        p.edit().putString("owner_salt", enc(salt)).putString("owner_hash", enc(hash(new, salt))).apply()
+        return "Passphrase changed."
+    }
+
     /** First call sets the passphrase, later calls verify it. Returns a message to show. */
     fun login(ctx: Context, pass: String): String {
         val p = prefs(ctx)
@@ -41,14 +56,14 @@ object OwnerAuth {
             if (pass.length < 8) return "Choose a passphrase of at least 8 characters"
             val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
             p.edit().putString("owner_salt", enc(salt)).putString("owner_hash", enc(hash(pass, salt)))
-                .putLong("owner_until", now + WEEK).putInt("owner_fail", 0).apply()
+                .putLong("owner_until", now + ownerMillis(ctx)).putInt("owner_fail", 0).apply()
             return "Owner passphrase set. Owner mode is unlocked."
         }
         val wait = p.getLong("owner_lock", 0L) - now
         if (wait > 0) return "Too many wrong tries. Wait ${wait / 1000} seconds."
         val ok = MessageDigest.isEqual(hash(pass, dec(p.getString("owner_salt", "") ?: "")), dec(p.getString("owner_hash", "") ?: ""))
         if (ok) {
-            p.edit().putLong("owner_until", now + WEEK).putInt("owner_fail", 0).apply()
+            p.edit().putLong("owner_until", now + ownerMillis(ctx)).putInt("owner_fail", 0).apply()
             return "Owner mode unlocked"
         }
         val fails = p.getInt("owner_fail", 0) + 1

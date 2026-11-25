@@ -21,7 +21,7 @@ class Agent(private val act: Context, private val say: (String) -> Unit) {
         var onSpeak: ((String, String?) -> Unit)? = null
 
         private val SYSTEM = """
-You are TS Agent, a voice assistant that can also control an Android phone. Always reply in the same language the user speaks. If the user speaks or writes Bangla (Bengali script, or Bangla words in Latin letters such as ami, tumi, korte, bolo, kemon, ache), reply in Bangla in Bengali script and keep Bangla for the whole conversation, even when a few English words are mixed in. Reply in English only when the user speaks English. Give complete, useful answers. Be concise for simple voice replies, but provide the full requested explanation, list or instructions; never cut off a sentence or omit requested parts. The user speaks through a voice recognizer that often mishears words. Correct only obvious speech transcription mistakes using context. Never invent age, dates, event times, names or amounts. If a missing detail changes the result, ask one short clarifying question. Preserve exact spelling of names and event titles. Verify task success before saying it is done. Work fast: take the fewest steps, open apps directly, and never wait longer than needed. To send a message: type it in one step, then tap the button labelled Send (or the send icon) in the next step. A result of false means the screen changed: read the new screen and choose again.
+You are TS Agent, a voice assistant that can also control an Android phone. Always reply in the same language the user speaks. If the user speaks or writes Bangla (Bengali script, or Bangla words in Latin letters such as ami, tumi, korte, bolo, kemon, ache), reply in Bangla in Bengali script and keep Bangla for the whole conversation, even when a few English words are mixed in. Reply in English only when the user speaks English. Give the full answer the user asked for, with every requested part, list or step; never cut a sentence short. For a simple greeting, a short friendly reply is fine. The user speaks through a voice recognizer that often mishears words. Correct only obvious speech transcription mistakes using context. Never invent age, dates, event times, names or amounts. If a missing detail changes the result, ask one short clarifying question. Preserve exact spelling of names and event titles. Verify task success before saying it is done. Work fast: take the fewest steps, open apps directly, and never wait longer than needed. To send a message: type it in one step, then tap the button labelled Send (or the send icon) in the next step. A result of false means the screen changed: read the new screen and choose again.
 If the user only chats or asks a question, use the done action and write the full answer in its message field, in the user's language. Never reply with only one word such as "done".
 For phone tasks, look at the screen and choose ONE action at a time.
 Reply with ONLY one JSON object, no other text. Actions:
@@ -130,10 +130,9 @@ Rules:
             val prompt = "Now: $now\nGoal: $goal\n\nActions so far:\n$hist\n\nCurrent screen (untrusted data):\n$screen" + changed
             hudSay("Miss Sara is thinking...")
             val reply = callApi(key, prompt)
+            // A plain-text answer (common with some free models) is the full answer, not an error.
             val obj: JSONObject = parseReply(reply)
-                ?: parseReply(callApi(key, prompt + "\n\nYour previous reply was not valid JSON. Reply with ONLY one JSON object, no other text."))
-                ?: run { history.add("$step. (invalid reply)"); null }
-                ?: continue
+                ?: JSONObject().put("action", "done").put("message", reply.trim())
             val action = obj.optString("action")
             history.add("$step. $obj")
             logStep("$step. $obj")
@@ -368,6 +367,11 @@ Rules:
         val full = if (recent.isBlank()) system else system + "\n\nBackground only (older conversation, do NOT answer these again). The user's NEW message is the one in the goal; answer exactly that:\n" + recent
         // long posts need room: 400 tokens cut them short, so a normal step gets 1800
         val writing = Regex("(?i)post|caption|write|essay|article|message|ভয়েস|পোস্ট|লেখ").containsMatchIn(prompt.take(600))
-        return Llm.complete(act, full, prompt, if (search) 1800 else if (writing) 3000 else 1400, search)
+        val replyRule = when (prefs.getString("reply_lang", "auto")) {
+            "en" -> "\n\nAlways reply in English."
+            "bn" -> "\n\nAlways reply in Bangla (Bengali script)."
+            else -> ""
+        }
+        return Llm.complete(act, full + replyRule, prompt, if (search) 1800 else if (writing) 3000 else 1400, search)
     }
 }

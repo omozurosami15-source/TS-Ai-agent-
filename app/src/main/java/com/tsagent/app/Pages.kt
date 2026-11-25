@@ -283,6 +283,7 @@ class Ico(ctx: Context, var kind: Int, var color: Int, private val sw: Float = 2
 
 /** Round photo with a glowing ring and a green "online" dot. */
 class ProfilePhoto(ctx: Context) : View(ctx) {
+    private val pBrightFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix(floatArrayOf(1.35f,0f,0f,0f,25f, 0f,1.35f,0f,0f,25f, 0f,0f,1.35f,0f,25f, 0f,0f,0f,1f,0f)))
     private val d = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true }
     private var bmp: Bitmap? = null
@@ -292,7 +293,7 @@ class ProfilePhoto(ctx: Context) : View(ctx) {
     private var t = 0f
 
     init {
-        for (n in listOf("miss_sara_avatar.png", "ms_sara_logo.png")) {
+        for (n in listOf("ms_sara_logo.png", "miss_sara_avatar.png")) {
             try { ctx.assets.open(n).use { bmp = BitmapFactory.decodeStream(it) } } catch (_: Exception) {}
             if (bmp != null) break
         }
@@ -316,7 +317,12 @@ class ProfilePhoto(ctx: Context) : View(ctx) {
         if (b != null) {
             clip.reset(); clip.addCircle(cx, cy, ri, Path.Direction.CW)
             src.set(0, 0, b.width, b.height); rf.set(cx - ri, cy - ri, cx + ri, cy + ri)
-            c.save(); c.clipPath(clip); c.drawBitmap(b, src, rf, paint); c.restore()
+            c.save(); c.clipPath(clip)
+            paint.color = 0xFF2B1A55.toInt(); c.drawCircle(cx, cy, ri, paint) // lit backdrop so the dark logo shows
+            paint.colorFilter = pBrightFilter
+            c.drawBitmap(b, src, rf, paint)
+            paint.colorFilter = null
+            c.restore()
         } else { paint.color = 0xFF0A2A1C.toInt(); c.drawCircle(cx, cy, ri, paint) }
         // online dot
         val dx = cx + r * 0.72f; val dy = cy + r * 0.72f
@@ -535,11 +541,11 @@ class PageLayer(private val act: MainActivity, private val kind: Int) : FrameLay
             col.addView(menuRow(icon, label, color, Theme.G, 0xCC03120C.toInt(), run), LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(8) })
         }
         row(I.PERSON, "Personal Information", cy) { act.pgEditName() }
-        row(I.SHIELDCHK, "Security", cy) { act.pgOwner() }
+        row(I.SHIELDCHK, "Security", cy) { act.pgSecurity() }
         row(I.BELL, "Notifications", 0xFFFFB02E.toInt()) { act.pgNotif() }
-        row(I.PALETTE, "Appearance", cy) { act.pgSettings() }
-        row(I.GLOBE, "Language", cy) { act.pgToggleLang() }
-        row(I.HELP, "Help", cy) { act.showSetup() }
+        row(I.PALETTE, "Appearance", cy) { act.pgAppearance() }
+        row(I.GLOBE, "Language", cy) { act.pgLanguage() }
+        row(I.HELP, "Help", cy) { act.pgHelp() }
         col.addView(menuRow(I.LOGOUT, "Logout", Theme.RED, Theme.RED, 0xCC1A0509.toInt()) { act.pgLogout() },
             LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(8); bottomMargin = dp(6) })
     }

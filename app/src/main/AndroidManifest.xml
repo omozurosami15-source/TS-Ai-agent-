@@ -45,6 +45,9 @@
         </activity>
         <activity android:name=".TestActivity" android:exported="false" />
         <activity android:name=".PlanDashboardActivity" android:exported="false" />
+        <activity android:name=".PremiumActivity" android:exported="false" />
+        <activity android:name=".VisionLabActivity" android:exported="false" />
+        <activity android:name=".DiagramActivity" android:exported="false" />
 
         <service
             android:name=".AgentService"

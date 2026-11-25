@@ -2,7 +2,7 @@ package com.tsagent.app
 
 object Config {
     // Your GitHub repository as OWNER/REPO. Used for update checks, announcements and feature requests.
-    const val GITHUB_REPO = "OWNER/REPO"
+    const val GITHUB_REPO = "omozurosami15-source/TS-Ai-agent-"
     // Optional backend. Leave empty to run fully on GitHub with no server and no login.
     const val APP_VERSION = "20"
     const val SERVER = "https://tstsvibe.site.je"

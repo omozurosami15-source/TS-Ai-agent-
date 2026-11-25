@@ -4,7 +4,7 @@
    "h": "4790fe1d4f84f72c45b790debd36ca573c0c842f6f59ccb02ad049edf4098b01",
    "plan": "owner",
    "days": 0,
-   "id": "c001"
+   "id": "c-owner-1"
   },
   {
    "h": "c810f1f696aaefd17cd86a6754da014061bd8fc7e96bb70a02cfe27bef31c6c1",
@@ -157,5 +157,7 @@
    "id": "c026"
   }
  ],
- "revoked": []
+ "revoked": [
+  "c001"
+ ]
 }

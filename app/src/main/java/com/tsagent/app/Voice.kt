@@ -45,7 +45,7 @@ object Voice {
             c.setRequestProperty("Content-Type", "application/json")
             c.setRequestProperty("X-Token", tok)
             c.setRequestProperty("User-Agent", "TS-Agent/1.0 (Android)")
-            c.outputStream.use { it.write(JSONObject().put("text", text.take(1000)).toString().toByteArray()) }
+            c.outputStream.use { it.write(JSONObject().put("text", text.take(4000)).toString().toByteArray()) }
             if (c.responseCode !in 200..299) return null
             val bytes = c.inputStream.readBytes()
             if (bytes.isEmpty()) return null
@@ -126,7 +126,7 @@ object Voice {
         val p = prefs(ctx)
         val key = p.getString("el_key", "") ?: ""
         val voice = (p.getString("el_voice", "") ?: "").replace(Regex("[^A-Za-z0-9]"), "")
-        val body = JSONObject().put("text", text.take(1500)).put("model_id", model(ctx, key)).toString()
+        val body = JSONObject().put("text", text.take(4000)).put("model_id", model(ctx, key)).toString()
         // several keys: the next one is tried only when this one is out of quota or rejected
         var code = 0
         var bytes = ByteArray(0)

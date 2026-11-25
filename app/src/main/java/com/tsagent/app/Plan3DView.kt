@@ -904,13 +904,17 @@ private class Plan3DRenderer : GLSurfaceView.Renderer {
         GLES20.glViewport(0, 0, w, h)
     }
 
+    /** Plans that share one design. Plan 2 uses Plan 1's scene, model and colours. */
+    private fun lookOf(n: Int): Int = if (n == 2) 1 else n
+
     private fun build(n: Int) {
-        val c = PlanCatalog.get(n).accent
+        val look = lookOf(n)
+        val c = PlanCatalog.get(look).accent
         accent = floatArrayOf(((c shr 16) and 0xFF) / 255f, ((c shr 8) and 0xFF) / 255f, (c and 0xFF) / 255f)
         val s = Scene(accent)
         val am = assets
-        val glb = "plan_models/plan_" + n.toString().padStart(2, '0') + ".glb"
-        if (am == null || !Gltf.load(am, glb, s)) when (n) {
+        val glb = "plan_models/plan_" + look.toString().padStart(2, '0') + ".glb"
+        if (am == null || !Gltf.load(am, glb, s)) when (look) {
             1 -> s.neural()
             2 -> s.voice()
             3 -> s.vault()

@@ -366,7 +366,10 @@ class MainActivity : Activity() {
             text = "REVIEW  ›"; typeface = Typeface.DEFAULT_BOLD; textSize = 12f; setTextColor(Color.WHITE)
             setPadding(dp(10), dp(6), dp(10), dp(6)); visibility = View.GONE
             background = NeonBg(Theme.C, 0xDD02100A.toInt(), 8f, 1.4f)
-            setOnClickListener { openPlanReview() }
+            setOnClickListener {
+                if (Entitlements.can(this@MainActivity, PlanRights.Feature.PREMIUM_DESIGN)) startActivity(Intent(this@MainActivity, PremiumActivity::class.java).putExtra("plan", Entitlements.dashboardPlanNumber(this@MainActivity).takeIf { it in 1..17 } ?: 1))
+                else openPlanReview()
+            }
         }
         stageFrame.addView(reviewBtn, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(8); marginStart = dp(8) })
         planThemeLabel = TextView(this).apply {
@@ -670,16 +673,168 @@ class MainActivity : Activity() {
     fun pgToggleLang() { val l = toggleVoiceLang(); show("AGENT", "Voice language: $l") }
     fun pgSettings() = showSettings()
     fun pgOwner() = showOwnerDialog()
+
+    /** Shown when a free user taps a paid AI tool. AI Chat and Voice Mode stay free. */
+    fun pgLockedTool(tool: String) {
+        AlertDialog.Builder(this).setTitle("Paid tool")
+            .setMessage("$tool needs a plan. AI Chat and Voice Mode are free. Buy a plan to unlock every AI tool.")
+            .setPositiveButton("SEE PLANS") { _, _ -> pgPlans() }
+            .setNegativeButton("CANCEL", null).show()
+    }
+
+    /** Security: owner mode, passphrase, how long a login lasts, clearing data, phone permissions. */
+    fun pgSecurity() {
+        val owner = if (!OwnerAuth.isSet(this)) "not set" else if (OwnerAuth.unlocked(this)) "unlocked" else "locked"
+        val acc = if (AgentService.instance != null) "on" else "off"
+        val overlay = if (Settings.canDrawOverlays(this)) "on" else "off"
+        val days = prefs.getInt("owner_days", 7)
+        val items = arrayOf(
+            "Owner mode: $owner  (plan: ${Entitlements.label(this)})",
+            "Accessibility: $acc",
+            "Overlay permission: $overlay",
+            "Lock owner mode now",
+            "Owner login / set passphrase",
+            "Change owner passphrase",
+            "Owner login lasts: $days days (change)",
+            "Clear chat history",
+            "Clear saved memory (owner)",
+            "Open Accessibility settings",
+            "Open Overlay permission"
+        )
+        AlertDialog.Builder(this).setTitle("Security").setItems(items) { _, i ->
+            when (i) {
+                3 -> { OwnerAuth.logout(this); show("AGENT", "Owner mode locked") }
+                4 -> showOwnerDialog()
+                5 -> showChangePassDialog()
+                6 -> pickOwnerDays()
+                7 -> confirmClear("Clear chat history?", "This removes the saved chat context the AI uses. It cannot be undone.", "chat_log", "Chat history cleared.")
+                8 -> if (!OwnerAuth.unlocked(this)) show("AGENT", "Owner login required first.")
+                     else confirmClear("Clear saved memory?", "This removes everything the AI remembers about you. It cannot be undone.", "memory", "Saved memory cleared.")
+                9 -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                10 -> startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            }
+        }.setNegativeButton("CLOSE", null).show()
+    }
+
+    private fun showChangePassDialog() {
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), 0) }
+        val oldP = EditText(this).apply { hint = "Current passphrase"; inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD }
+        val newP = EditText(this).apply { hint = "New passphrase (8+ characters)"; inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD }
+        box.addView(oldP); box.addView(newP)
+        AlertDialog.Builder(this).setTitle("Change owner passphrase").setView(box)
+            .setPositiveButton("CHANGE") { _, _ -> show("AGENT", OwnerAuth.change(this, oldP.text.toString(), newP.text.toString())) }
+            .setNegativeButton("CANCEL", null).show()
+    }
+
+    private fun pickOwnerDays() {
+        val opts = arrayOf("1 day", "7 days", "30 days")
+        val days = intArrayOf(1, 7, 30)
+        AlertDialog.Builder(this).setTitle("Owner login lasts").setItems(opts) { _, i ->
+            prefs.edit().putInt("owner_days", days[i]).apply()
+            show("AGENT", "Owner login now lasts ${days[i]} days after each login.")
+        }.setNegativeButton("CANCEL", null).show()
+    }
+
+    private fun confirmClear(title: String, msg: String, key: String, done: String) {
+        AlertDialog.Builder(this).setTitle(title).setMessage(msg)
+            .setPositiveButton("CLEAR") { _, _ -> prefs.edit().remove(key).apply(); show("AGENT", done) }
+            .setNegativeButton("CANCEL", null).show()
+    }
+
+    /** Appearance: motion and the floating assistant. */
+    fun pgAppearance() {
+        val motion = if (prefs.getBoolean("reduce_motion", false)) "ON" else "OFF"
+        val float = if (prefs.getBoolean("float", true)) "ON" else "OFF"
+        val items = arrayOf("Reduce motion: $motion", "Floating assistant bubble: $float")
+        AlertDialog.Builder(this).setTitle("Appearance").setItems(items) { _, i ->
+            when (i) {
+                0 -> { prefs.edit().putBoolean("reduce_motion", !prefs.getBoolean("reduce_motion", false)).apply(); pgAppearance() }
+                1 -> {
+                    val on = !prefs.getBoolean("float", true)
+                    prefs.edit().putBoolean("float", on).apply()
+                    if (on) AssistantService.ensure(this) else AssistantService.stop(this)
+                    pgAppearance()
+                }
+            }
+        }.setNegativeButton("CLOSE", null).show()
+    }
+
+    /** Language: the voice language and the language the AI replies in. */
+    fun pgLanguage() {
+        val voice = prefs.getString("vlang", "")?.ifBlank { "default" } ?: "default"
+        val reply = prefs.getString("reply_lang", "auto") ?: "auto"
+        val items = arrayOf(
+            "Voice: English (en-US)", "Voice: Bangla (bn-BD)", "Voice: Hindi (hi-IN)",
+            "Reply: same as you (auto)", "Reply: always English", "Reply: always Bangla"
+        )
+        AlertDialog.Builder(this).setTitle("Language  (voice: $voice, reply: $reply)").setItems(items) { _, i ->
+            when (i) {
+                0 -> prefs.edit().putString("vlang", "en-US").apply()
+                1 -> prefs.edit().putString("vlang", "bn-BD,en-US").apply()
+                2 -> prefs.edit().putString("vlang", "hi-IN,en-US").apply()
+                3 -> prefs.edit().putString("reply_lang", "auto").apply()
+                4 -> prefs.edit().putString("reply_lang", "en").apply()
+                5 -> prefs.edit().putString("reply_lang", "bn").apply()
+            }
+            show("AGENT", "Language saved.")
+        }.setNegativeButton("CLOSE", null).show()
+    }
+
+    /** Notifications: reminder alerts, a test notification, and the system settings. */
+    fun pgNotif() {
+        val rem = if (Reminders.enabled(this)) "ON" else "OFF"
+        val items = arrayOf("Reminder alerts: $rem", "Send a test notification", "Open system notification settings")
+        AlertDialog.Builder(this).setTitle("Notifications").setItems(items) { _, i ->
+            when (i) {
+                0 -> {
+                    val on = !Reminders.enabled(this)
+                    Reminders.setEnabled(this, on)
+                    show("AGENT", "Reminder alerts " + (if (on) "ON" else "OFF"))
+                    if (on && Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3)
+                }
+                1 -> testNotification()
+                2 -> try {
+                    startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                } catch (e: Exception) { show("AGENT", "Could not open notification settings.") }
+            }
+        }.setNegativeButton("CLOSE", null).show()
+    }
+
+    private fun testNotification() {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val ch = "ts_test"
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(android.app.NotificationChannel(ch, "TS Agent", android.app.NotificationManager.IMPORTANCE_DEFAULT))
+        val n = (if (Build.VERSION.SDK_INT >= 26) android.app.Notification.Builder(this, ch) else android.app.Notification.Builder(this))
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("TS Agent")
+            .setContentText("Notifications are working.")
+            .setAutoCancel(true)
+            .build()
+        nm.notify(4242, n)
+        show("AGENT", "Test notification sent.")
+    }
+
+    /** Help: the website pages, Telegram and the setup guide. */
+    fun pgHelp() {
+        val items = arrayOf("Terms of Service", "Privacy Policy", "Copyright", "Contact us", "Telegram channel", "Setup guide")
+        val pages = arrayOf("terms.php", "privacy.php", "copyright.php", "contact.php")
+        AlertDialog.Builder(this).setTitle("Help").setItems(items) { _, i ->
+            when (i) {
+                0, 1, 2, 3 -> {
+                    if (!Config.enabled()) show("AGENT", "The website is not connected yet. Ask the owner for the link.")
+                    else startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Config.SERVER + "/" + pages[i])))
+                }
+                4 -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Config.TELEGRAM_URL)))
+                5 -> showSetup()
+            }
+        }.setNegativeButton("CLOSE", null).show()
+    }
     fun pgPlans() = openPlanDashboard()
     fun pgFeed() { openPage(Pg.NONE); showFeed() }
-    fun pgNotif() {
-        try {
-            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
-        } catch (e: Exception) { show("AGENT", "Could not open notification settings.") }
-    }
 
     /** Closes the page, opens the chat box and puts the tool's starting words in it. */
     fun pgTool(tool: String, prefix: String) {
+        if (tool.isNotEmpty() && !Entitlements.can(this, PlanRights.Feature.AI_TOOLS)) { pgLockedTool(tool); return }
         if (tool.isNotEmpty()) { nextHistType = "tools"; nextHistTitle = tool }
         openPage(Pg.NONE)
         chatRow.visibility = View.VISIBLE
@@ -690,6 +845,7 @@ class MainActivity : Activity() {
     }
 
     fun pgPickFile() {
+        if (!Entitlements.can(this, PlanRights.Feature.AI_TOOLS)) { pgLockedTool("File analyzer"); return }
         nextHistType = "tools"; nextHistTitle = "FILE ANALYZER"
         openPage(Pg.NONE)
         chatRow.visibility = View.VISIBLE

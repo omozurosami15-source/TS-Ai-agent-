@@ -22,15 +22,19 @@ object PlanRights {
         WEB_SEARCH("Web search in answers"),
         AUTOPLAY("Autoplay"),
         OWNER_PERSONA("Owner persona and favorite song"),
-        WATCH_MODE("Watch mode (owner only)")
+        WATCH_MODE("Watch mode (owner only)"),
+        PREMIUM_DESIGN("Premium design pages, all 17 plans (opened with REVIEW)"),
+        PREMIUM_RICH("Picture design pages for the top plans"),
+        AI_TOOLS("AI tools: translator, text writer, code helper, summarizer, file analyzer")
     }
 
     private val rights: Map<String, Set<Feature>> = mapOf(
         "free" to emptySet(),
-        "p1" to setOf(Feature.COMPANION),
+        "p1" to setOf(Feature.COMPANION, Feature.PREMIUM_DESIGN, Feature.AI_TOOLS),
         "p2" to setOf(
             Feature.COMPANION, Feature.NATURAL_VOICE, Feature.FLOATING_ASSISTANT,
-            Feature.PHONE_ACTIONS, Feature.WEB_SEARCH, Feature.AUTOPLAY
+            Feature.PHONE_ACTIONS, Feature.WEB_SEARCH, Feature.AUTOPLAY, Feature.AI_TOOLS,
+            Feature.PREMIUM_DESIGN, Feature.PREMIUM_RICH
         ),
         "owner" to Feature.values().toSet()
     )
@@ -73,10 +77,13 @@ object PlanRights {
         ),
         "p1" to listOf(
             "Companion persona (owner login is still required for it to start)",
+            "Premium design pages for all 17 plans",
+            "AI tools: translator, text writer, code helper, summarizer, file analyzer",
             "3,000 coins every month"
         ),
         "p2" to listOf(
             "Everything in Plan 1",
+            "Picture design pages for the top plans",
             "Phone actions: calendar, alarm, timer, dial, SMS and email drafts, save file",
             "Floating assistant",
             "Autoplay",

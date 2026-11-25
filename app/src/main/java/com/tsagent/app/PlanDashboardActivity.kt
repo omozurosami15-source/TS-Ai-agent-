@@ -45,6 +45,15 @@ class PlanDashboardActivity : Activity() {
     private lateinit var scroll: ScrollView
     private lateinit var fx: PlanFxView
     private lateinit var threeD: Plan3DView
+    private lateinit var planArt: android.widget.ImageView
+    private var artAnim: android.animation.ObjectAnimator? = null
+    /** Plans that show a reference picture instead of the 3D view, and the picture file for each. */
+    private val planArtFiles = mapOf(3 to "plan_designs/plan_03_scene.png", 4 to "plan_designs/plan_04_scene.png")
+    private val planArtCache = HashMap<Int, android.graphics.Bitmap?>()
+    private fun planArtBitmap(plan: Int): android.graphics.Bitmap? = planArtCache.getOrPut(plan) {
+        val file = planArtFiles[plan] ?: return@getOrPut null
+        try { assets.open(file).use { android.graphics.BitmapFactory.decodeStream(it) } } catch (e: Exception) { null }
+    }
 
     private val names = listOf(
         "Neural Core", "Voice Studio", "Memory Vault", "Soul Studio", "Vision Lab",
@@ -52,6 +61,9 @@ class PlanDashboardActivity : Activity() {
         "Smart Notes", "Daily Briefing", "Translator", "Research Desk",
         "Calendar Hub", "Reminder Center", "Security Center", "System Analytics"
     )
+    /** Plan 2 shares Plan 1's design, so it uses Plan 1's motion label. */
+    private fun motionIndex(plan: Int): Int = if (plan == 2) 0 else plan - 1
+
     private val motionNames = listOf(
         "NEURAL PROCESSING PULSE", "VOICE WAVEFORM", "MEMORY NODE GLOW",
         "CALM ORBIT FIELD", "VISION SCAN", "WEB KNOWLEDGE LINKS",
@@ -116,6 +128,10 @@ class PlanDashboardActivity : Activity() {
             clipToOutline = true
         }
         threeD = Plan3DView(this).apply { setBackdrop(true); setFocus(0.5f, 0.52f, 0.80f) }
+        planArt = android.widget.ImageView(this).apply {
+            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP; visibility = View.GONE
+        }
+        artFrame.addView(planArt, FrameLayout.LayoutParams(-1, -1))
         artFrame.addView(threeD, FrameLayout.LayoutParams(-1, -1))
         fx = PlanFxView(this).apply { alpha = 0.6f }
         artFrame.addView(fx, FrameLayout.LayoutParams(-1, -1))
@@ -124,7 +140,7 @@ class PlanDashboardActivity : Activity() {
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; background = panelBg(); setPadding(dp(14), dp(12), dp(14), dp(12))
         }
-        motionLabel = text(motionNames[current - 1], 11f, 0xFF6CF5E8.toInt(), true)
+        motionLabel = text(motionNames[motionIndex(current)], 11f, 0xFF6CF5E8.toInt(), true)
         info.addView(motionLabel)
         descriptionLabel = text(planDescription(current), 12f, 0xFFD2E0EA.toInt()).apply {
             setPadding(0, dp(6), 0, 0)
@@ -222,12 +238,39 @@ class PlanDashboardActivity : Activity() {
         else -> "METRICS  •  TRENDS  •  PERFORMANCE"
     }
 
+    /** Plan 3 shows its reference scene with a slow zoom; other plans keep the 3D view. */
+    private fun updatePlanArt() {
+        val bmp = planArtBitmap(current)
+        if (bmp != null) {
+            planArt.setImageBitmap(bmp)
+            planArt.visibility = View.VISIBLE
+            threeD.visibility = View.GONE
+            if (artAnim == null) {
+                artAnim = android.animation.ObjectAnimator.ofPropertyValuesHolder(
+                    planArt,
+                    android.animation.PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.05f),
+                    android.animation.PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.05f)
+                ).apply {
+                    duration = 4500
+                    repeatCount = android.animation.ObjectAnimator.INFINITE
+                    repeatMode = android.animation.ObjectAnimator.REVERSE
+                    start()
+                }
+            }
+        } else {
+            planArt.visibility = View.GONE
+            threeD.visibility = View.VISIBLE
+            artAnim?.cancel(); artAnim = null
+        }
+    }
+
     private fun showPlan(number: Int) {
         current = number.coerceIn(1, 17)
         if (::fx.isInitialized) fx.setPlan(current)
         if (::threeD.isInitialized) threeD.setPlan(current)
+        if (::planArt.isInitialized) updatePlanArt()
         title.text = "PLAN ${current.toString().padStart(2, '0')}  •  ${names[current - 1]}"
-        motionLabel.text = motionNames[current - 1]
+        motionLabel.text = motionNames[motionIndex(current)]
         descriptionLabel.text = planDescription(current)
         featureLabel.text = planFeatures(current)
         refreshPlanState()

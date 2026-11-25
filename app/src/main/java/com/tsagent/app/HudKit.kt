@@ -67,6 +67,7 @@ class AvatarView(ctx: Context) : View(ctx) {
     private val src = Rect()
     private val mtx = Matrix()
     private var sweep: SweepGradient? = null
+    private val brightFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix(floatArrayOf(1.35f,0f,0f,0f,25f, 0f,1.35f,0f,0f,25f, 0f,0f,1.35f,0f,25f, 0f,0f,0f,1f,0f)))
 
     init {
         for (name in listOf("ms_sara_logo.png", "miss_sara_avatar.png")) {
@@ -101,7 +102,10 @@ class AvatarView(ctx: Context) : View(ctx) {
             src.set(0, 0, b.width, b.height)
             paint.style = Paint.Style.FILL
             c.save(); c.clipPath(clip)
+            paint.color = 0xFF2B1A55.toInt(); c.drawRoundRect(inner, ir, ir, paint) // lit backdrop so the dark logo shows
+            paint.colorFilter = brightFilter
             c.drawBitmap(b, src, inner, paint)
+            paint.colorFilter = null
             c.restore()
         } else {
             paint.style = Paint.Style.FILL; paint.color = 0xFF0A2A1C.toInt()
