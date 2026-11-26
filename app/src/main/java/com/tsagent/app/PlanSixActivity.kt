@@ -44,7 +44,7 @@ class PlanSixActivity : Activity() {
 
         // the control-room stage: flowing green waves and a turning network globe
         val stage = FrameLayout(this).apply { background = card(green, panel, 18) }
-        stage.addView(WebView(this, green, lime), FrameLayout.LayoutParams(-1, dp(220)))
+        stage.addView(PlanSixWebView(this, green, lime), FrameLayout.LayoutParams(-1, dp(220)))
         col.addView(stage, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
 
         // status: real values only
@@ -129,7 +129,7 @@ class PlanSixActivity : Activity() {
 }
 
 /** Green flowing waves and a turning network globe (drawn in code). */
-class WebView(ctx: Context, private val green: Int, private val lime: Int) : View(ctx) {
+class PlanSixWebView(ctx: Context, private val green: Int, private val lime: Int) : View(ctx) {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private var t = 0f
     private val anim = ValueAnimator.ofFloat(0f, 1f).apply {

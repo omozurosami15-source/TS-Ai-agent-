@@ -45,7 +45,7 @@ class PlanThreeActivity : Activity() {
 
         // the holographic microphone scene: glow, arc rings and the capsule
         val stage = FrameLayout(this).apply { background = card(blue, panel, 18) }
-        stage.addView(MicView(this, blue, ice), FrameLayout.LayoutParams(-1, dp(230)))
+        stage.addView(PlanThreeMicView(this, blue, ice), FrameLayout.LayoutParams(-1, dp(230)))
         col.addView(stage, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
 
         // status: real values only (saved notes are shown for the owner only)
@@ -134,7 +134,7 @@ class PlanThreeActivity : Activity() {
 }
 
 /** The holographic microphone: a glowing capsule over a platform, with arc rings and ripples that move. */
-class MicView(ctx: Context, private val blue: Int, private val ice: Int) : View(ctx) {
+class PlanThreeMicView(ctx: Context, private val blue: Int, private val ice: Int) : View(ctx) {
     private val glow = Paint(Paint.ANTI_ALIAS_FLAG)
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)

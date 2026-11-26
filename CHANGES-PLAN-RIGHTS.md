@@ -200,3 +200,6 @@
 - Layer 4: a control bar placed on the platform (CHAT, VISION, DIAGRAM, PLANS).
 - Layers use fractions of the photo, so they stay on the same spots at any width.
 - Limit: positions were set from the photo, not measured on a phone. Needs a screenshot check.
+
+## Build fix (v37)
+- MicView was defined twice (the project already has MicView.kt). The Plan 3 view is renamed PlanThreeMicView, and the Plan 6 view is renamed PlanSixWebView, so no class name clashes.
