@@ -71,6 +71,8 @@ abstract class PlanBasePage : Activity() {
         status.background = card(accent, 0xCC05080C.toInt(), 8)
         status.setPadding(dp(6), dp(4), dp(6), dp(4))
         stage.addView(status)
+
+        val bar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
  = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         val items = listOf("CHAT" to { open(ChatPageActivity::class.java) }, "VISION" to { open(VisionLabActivity::class.java) },
             "PLANS" to { open(PlanDashboardActivity::class.java) }, "BACK" to { finish() })

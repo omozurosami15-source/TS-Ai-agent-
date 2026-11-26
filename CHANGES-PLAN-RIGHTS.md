@@ -268,3 +268,7 @@
 - The brain has a pulsing light and two orbit rings that turn in opposite directions (GlowView).
 - The photo has a slow zoom (5 seconds in, out).
 - Other plans have no animation yet.
+
+## Build fix (v50)
+- PlanPages.kt: the bar declaration was lost in an earlier edit; restored.
+- Old plan files (PlanTwoActivity.kt, PlanPicturePage.kt, etc.) were deleted in this project, but they still exist in the GitHub repo from earlier pushes. A plain `cp -r` keeps them, which causes the duplicate class errors. Use rsync --delete (below) so deleted files are removed from the repo too.
