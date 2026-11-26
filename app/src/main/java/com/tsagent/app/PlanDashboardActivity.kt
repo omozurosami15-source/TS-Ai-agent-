@@ -48,7 +48,7 @@ class PlanDashboardActivity : Activity() {
     private lateinit var planArt: android.widget.ImageView
     private var artAnim: android.animation.ObjectAnimator? = null
     /** Plans that show a reference picture instead of the 3D view, and the picture file for each. */
-    private val planArtFiles = mapOf(3 to "plan_designs/plan_03_scene.png", 4 to "plan_designs/plan_04_scene.png")
+    private val planArtFiles = mapOf<Int, String>()
     private val planArtCache = HashMap<Int, android.graphics.Bitmap?>()
     private fun planArtBitmap(plan: Int): android.graphics.Bitmap? = planArtCache.getOrPut(plan) {
         val file = planArtFiles[plan] ?: return@getOrPut null

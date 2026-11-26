@@ -184,8 +184,15 @@ class StageView(ctx: Context) : View(ctx) {
             paint.strokeWidth = 1.8f * d; paint.color = col; c.drawPath(bp, paint)
             drawNodeIcon(c, i, r.left + 28f * d, r.centerY(), r.height() * 0.5f, col)
             nodeText.textSize = (r.height() * 0.36f).coerceAtMost(15f * d)
+            // keep the label inside the box: leave room for the arrow on the right and shrink the text if needed
+            val labelX = r.left + 52f * d
+            val labelRoom = r.right - labelX - 34f * d
+            while (nodeText.measureText(nodes[i].first) > labelRoom && nodeText.textSize > 7f * d) nodeText.textSize -= 0.5f * d
             nodeText.color = blend(col, 0xFFFFFFFF.toInt(), 0.55f)
-            c.drawText(nodes[i].first, r.left + 52f * d, r.centerY() + nodeText.textSize * 0.35f, nodeText)
+            // clip to the box, so no letter can ever be drawn outside it
+            c.save(); c.clipRect(r.left + 2f * d, r.top, r.right - 2f * d, r.bottom)
+            c.drawText(nodes[i].first, labelX, r.centerY() + nodeText.textSize * 0.35f, nodeText)
+            c.restore()
             paint.style = Paint.Style.STROKE; paint.strokeWidth = 2.2f * d; paint.color = nodeText.color
             paint.strokeCap = Paint.Cap.ROUND
             val ax = r.right - 18f * d; val ay = r.centerY()

@@ -46,6 +46,22 @@
         <activity android:name=".TestActivity" android:exported="false" />
         <activity android:name=".PlanDashboardActivity" android:exported="false" />
         <activity android:name=".PremiumActivity" android:exported="false" />
+        <activity android:name=".PlanTwoActivity" android:exported="false" />
+        <activity android:name=".PlanThreeActivity" android:exported="false" />
+        <activity android:name=".PlanFourActivity" android:exported="false" />
+        <activity android:name=".PlanFiveActivity" android:exported="false" />
+        <activity android:name=".PlanSixActivity" android:exported="false" />
+        <activity android:name=".PlanSevenActivity" android:exported="false" />
+        <activity android:name=".PlanEightActivity" android:exported="false" />
+        <activity android:name=".PlanNineActivity" android:exported="false" />
+        <activity android:name=".PlanTenActivity" android:exported="false" />
+        <activity android:name=".PlanElevenActivity" android:exported="false" />
+        <activity android:name=".PlanTwelveActivity" android:exported="false" />
+        <activity android:name=".PlanThirteenActivity" android:exported="false" />
+        <activity android:name=".PlanFourteenActivity" android:exported="false" />
+        <activity android:name=".PlanFifteenActivity" android:exported="false" />
+        <activity android:name=".PlanSixteenActivity" android:exported="false" />
+        <activity android:name=".PlanSeventeenActivity" android:exported="false" />
         <activity android:name=".VisionLabActivity" android:exported="false" />
         <activity android:name=".DiagramActivity" android:exported="false" />
 

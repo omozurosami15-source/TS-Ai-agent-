@@ -289,6 +289,7 @@ class AssistantService : Service() {
     private fun speak(text: String, lang: String?) {
         if (!visible) return
         if (!SpeechGate.claim("assistant", text) { tts?.stop(); Voice.stop() }) return
+        recognizer?.cancel()
         if (Voice.configured(this)) {
             Voice.speak(this, text, { orb.state = 2 }, { if (orb.state == 2) orb.state = 0; afterSpeak() }) { systemSpeak(text, lang) }
             return
@@ -317,6 +318,7 @@ class AssistantService : Service() {
     }
 
     private fun listen() {
+        if (orb.state == 2) return // never open the mic while the reply is spoken
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             showCard("Microphone permission is needed. Open TS Agent and allow it."); return
         }
@@ -347,7 +349,8 @@ class AssistantService : Service() {
                     main.post { recognizer?.destroy(); recognizer = null }
                     val t = r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                     // its own reply heard back through the mic is not a new question
-                    if (t != null && !SpeechGate.isEcho(t)) submit(t)
+                    // not while the reply is spoken: the mic must not interrupt it
+                    if (t != null && !SpeechGate.isEcho(t) && orb.state != 2) submit(t)
                 }
                 override fun onPartialResults(b: Bundle?) {}
                 override fun onEvent(t: Int, b: Bundle?) {}

@@ -106,3 +106,97 @@
 - Config.GITHUB_REPO set to omozurosami15-source/TS-Ai-agent-, so feature switches, notices and coupon updates load from GitHub.
 - Static checks passed: manifest XML, coupon and switch JSON, no conflict markers, brace balance in every app file.
 - Not verified here: a real Kotlin compile and the APK run. Those happen in GitHub Actions and on the phone.
+
+## Reply cut off by the microphone (v18)
+- Cause: while the phone spoke, the mic kept listening. The phone's own voice came back into the mic, and the echo check often failed to match it, so the app treated it as the user interrupting and stopped the reply after the first line. Partial results and the start of speech also stopped the reply.
+- Fix: the mic is off while a reply is spoken (listen() refuses to start; the recognizer is cancelled when a reply starts). Results that arrive during a reply are ignored. Listening restarts when the reply ends. Only the ABORT button stops a reply.
+- Applies to the main screen and the floating assistant.
+- Trade-off: the user cannot interrupt by voice during a reply; use ABORT. Voice interruption can be added back later with headset-only detection.
+
+## Plan 1 page only (v19)
+- Removed the previous premium designs (animated code designs and the picture pages for plans 2-17) and their pictures. Plans 3 and 4 no longer show pictures on the plan screen.
+- REVIEW opens the new Plan 1 page (AI Core) only for Plan 1 phones with the premium design.
+- Plan 1 page: header with title and status, the core picture in a frame, ask the plan's AI, and buttons to Chat, Voice, Vision Lab, Diagram and Plans.
+- Not verified visually. Needs a phone screenshot to compare with the reference picture.
+
+## Restore default home (v20)
+- Appearance → "Restore default home" resets: home shortcuts, dashboard plan, reduce motion (off), floating bubble (on).
+- Chat, memory, tasks, plan and owner data are not touched. The defaults are built into the app.
+
+## Plan 2 page (v21)
+- PlanTwoActivity: Voice Studio page after the AI VOICE ASSISTANT reference picture: title, glass panel with animated cyan and magenta waveform (WaveView), real status (mic, plan, reply language, voice), ask the plan's AI, and buttons.
+- REVIEW opens it for Plan 2 phones with the premium design; Plan 1 keeps its page.
+- Not pixel-identical: the waveform is drawn in code, the hologram hexagon and the background scene are not included.
+
+## Plans button in Profile (v22)
+- Profile page: a "Plans" row opens the plan screen (pgPlans), placed under Personal Information.
+
+## Side button text stays inside the box (v23)
+- MEMORY, CHAT and SOUL labels on the home screen shrink to fit before the arrow, so they no longer run past the box edge.
+
+## Side button text clipped to the box (v24)
+- The MEMORY, CHAT and SOUL labels are clipped to their box, so a letter cannot be drawn outside it. The text room is also wider on the right.
+
+## Plan 3 page (v25)
+- PlanThreeActivity: Memory Vault after the holographic microphone reference picture: title, a stage with the glowing capsule, arc rings, ripples on the platform (MicView), real status (saved notes for the owner, plan, mic), ask the plan's AI, and buttons.
+- REVIEW opens it for Plan 3 phones with the premium design.
+- Not pixel-identical: the scene is drawn in code. The room and side panels of the picture are not included.
+
+## Settings reverted (v27)
+- Settings owner and Sara Watch controls are back as before (v26 change reverted).
+- Face matching for owner unlock is dropped at the owner's request.
+
+## Chat path (v28, from video 1)
+- Talk and questions (no phone action words) go straight to the AI as a normal conversation: plain text answer, full answer, shown and spoken in full.
+- The system prompt asks the AI to understand mixed Bangla and English and to reply in the user's style; reply language setting applies.
+- A "Thinking..." status shows while the answer is being made.
+- Phone actions (open, call, send, upload, alarm, reminder, timer, and similar) keep the agent loop.
+- Limit: routing is by keywords. A question that contains an action word (for example "how do I open a bank account") goes to the agent path.
+
+## Plan 4 page (v29)
+- PlanFourActivity: Soul Studio after the holographic brain reference picture: title, a stage with a glowing core, a light column to a platform with ripples, two orbit rings that turn (BrainView), real status (plan, mode), ask the plan's AI, and buttons.
+- REVIEW opens it for Plan 4 phones with the premium design.
+- Not pixel-identical: the brain is a glowing core, not the 3D brain of the picture; the side dashboards are not included.
+
+## Stronger understanding (v30)
+- Phone agent prompt: a UNDERSTANDING section (mixed Bangla/English, Latin-letter Bangla, speech mistakes, examples), ask one question when a command is missing a key detail, never guess a recipient, retry a failed step once then say what went wrong.
+- Chat prompt: infer meaning from context when speech looks garbled.
+- Existing app-name matching (Bangla aliases and fuzzy names) is unchanged.
+- Limit: the real strength depends on the model. Prompt changes alone cannot make a weak model strong.
+
+## Plan 5 page: AI companion (v31)
+- PlanFiveActivity: a personal AI companion the user names. Name shows at the top. ON/OFF with the 18+ confirmation (same comp_on key as the Settings companion).
+- It says it is an AI, is warm and supportive, is never possessive, no sexual content, points to help if the user is in danger.
+- Memory: the user saves what the companion may remember; view or clear all.
+- REVIEW opens it for Plan 5 phones. Companion access comes from Entitlements.companion (Plan 1 and up).
+- Note: the Settings companion on the main screen still needs owner unlock (Persona.kt). The Plan 5 page does not.
+
+## Check of plans 1 to 5, and plans 6 and 7 (v32)
+- Check (code only): Plan 1 and Plan 5 had no animation; added a breathing animation to each. Plans 2, 3, 4 already animate. None of these were checked on a phone.
+- Plan 6 (Web Intelligence, green control room): flowing green waves and a turning network globe, real status (web search on/off, plan), ask with the plan AI and search when enabled.
+- Plan 7 (Coding Studio, robot desk): a glowing robot head that blinks, a tools row, a code box and RUN button.
+- REVIEW opens them for Plan 6 and 7 phones. Not pixel-identical to the pictures.
+
+## Plans 8 and 9 (v33)
+- Plan 8 File Reader: hero is the sci-fi bridge picture (plan_08_scene.png) with a slow zoom, real status, ask the plan AI.
+- Plan 9 Task Automation: hero is the control-room picture (plan_09_scene.png), same page structure.
+- Shared base: PlanPicturePage. REVIEW opens them for Plans 8 and 9.
+- Not pixel-identical checks; the hero is the picture itself, the status lines are real.
+
+## Plans 10 to 17 (v34)
+- Each plan has its page on PlanPicturePage with its reference picture as the hero: 10 Smart Notes (AI control dashboard), 11 Daily Briefing (voice analytics), 12 Translator (MISS SARA banner), 13 Research Desk (atom), 14 Calendar Hub (voice hologram), 15 Reminder Center (robot desk), 16 Security Center (control room), 17 System Analytics (AI core brain).
+- Some pictures are reused across plans, because only a few distinct reference pictures were available. The uploads of app screenshots were not used as designs.
+- REVIEW routes 10 to 17 to their pages.
+
+## One photo per plan (v35)
+- Plans 8 to 17 now each use a different photo: 8 sci-fi bridge, 9 control room, 10 AI control dashboard, 11 green sphere chat, 12 MISS SARA banner, 13 atom, 14 lime dashboard, 15 MISS SARA poster, 16 Lumi chat, 17 voice analytics.
+- Plans 1 to 7 keep their own photo or drawn design (see notes above).
+- Limit: each page still shows the photo as the hero with the same layout. A bespoke layout that matches each photo's panels and layers is not built yet.
+
+## Plan 1 rebuilt in layers (v36)
+- Layer 1: the photo, sized to its own aspect ratio.
+- Layer 2: title and real status placed inside the curved top panel.
+- Layer 3: a tap area over the brain that opens the question box.
+- Layer 4: a control bar placed on the platform (CHAT, VISION, DIAGRAM, PLANS).
+- Layers use fractions of the photo, so they stay on the same spots at any width.
+- Limit: positions were set from the photo, not measured on a phone. Needs a screenshot check.

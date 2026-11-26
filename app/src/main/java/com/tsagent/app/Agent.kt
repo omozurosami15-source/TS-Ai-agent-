@@ -21,7 +21,12 @@ class Agent(private val act: Context, private val say: (String) -> Unit) {
         var onSpeak: ((String, String?) -> Unit)? = null
 
         private val SYSTEM = """
-You are TS Agent, a voice assistant that can also control an Android phone. Always reply in the same language the user speaks. If the user speaks or writes Bangla (Bengali script, or Bangla words in Latin letters such as ami, tumi, korte, bolo, kemon, ache), reply in Bangla in Bengali script and keep Bangla for the whole conversation, even when a few English words are mixed in. Reply in English only when the user speaks English. Give the full answer the user asked for, with every requested part, list or step; never cut a sentence short. For a simple greeting, a short friendly reply is fine. The user speaks through a voice recognizer that often mishears words. Correct only obvious speech transcription mistakes using context. Never invent age, dates, event times, names or amounts. If a missing detail changes the result, ask one short clarifying question. Preserve exact spelling of names and event titles. Verify task success before saying it is done. Work fast: take the fewest steps, open apps directly, and never wait longer than needed. To send a message: type it in one step, then tap the button labelled Send (or the send icon) in the next step. A result of false means the screen changed: read the new screen and choose again.
+You are TS Agent, a voice assistant that can also control an Android phone.
+UNDERSTANDING: the user may speak Bangla, English or a mix, may type Bangla in Latin letters, and speech-to-text may make mistakes. First work out the most likely meaning, then act.
+Examples: "facebook e jao" = open Facebook. "ki khobor" = a general question: answer it with the done action. "kal sokal 7 tay alarm" = set an alarm for 7 am tomorrow.
+If a phone command is missing a key detail (who, what, which app, what time), ask ONE short question with the done action before acting.
+Never guess a message recipient, and never send a message the user did not clearly ask for.
+If a step fails, try another way once, then tell the user plainly what went wrong. Always reply in the same language the user speaks. If the user speaks or writes Bangla (Bengali script, or Bangla words in Latin letters such as ami, tumi, korte, bolo, kemon, ache), reply in Bangla in Bengali script and keep Bangla for the whole conversation, even when a few English words are mixed in. Reply in English only when the user speaks English. Give the full answer the user asked for, with every requested part, list or step; never cut a sentence short. For a simple greeting, a short friendly reply is fine. The user speaks through a voice recognizer that often mishears words. Correct only obvious speech transcription mistakes using context. Never invent age, dates, event times, names or amounts. If a missing detail changes the result, ask one short clarifying question. Preserve exact spelling of names and event titles. Verify task success before saying it is done. Work fast: take the fewest steps, open apps directly, and never wait longer than needed. To send a message: type it in one step, then tap the button labelled Send (or the send icon) in the next step. A result of false means the screen changed: read the new screen and choose again.
 If the user only chats or asks a question, use the done action and write the full answer in its message field, in the user's language. Never reply with only one word such as "done".
 For phone tasks, look at the screen and choose ONE action at a time.
 Reply with ONLY one JSON object, no other text. Actions:
@@ -79,6 +84,8 @@ Rules:
 
     fun start(goal: String) {
         if (!Llm.configured(act)) { say("First add an AI key and choose a model in Settings"); return }
+        // Talking and questions go straight to the AI as a normal conversation. Phone actions use the agent loop.
+        if (isChatOnly(goal)) { chatTurn(goal); return }
         val key = ""
         // A new request replaces the running one at once: no waiting. The old run notices its number is old and stops.
         // no status line here: the new request simply takes over
@@ -106,6 +113,60 @@ Rules:
                     running = false
                     AgentService.instance?.hud?.hide()
                     if (kept) KeepAliveService.stop(act)
+                }
+            }
+        }.start()
+    }
+
+    private val actionWords = Regex("(?i)\\b(open|call|dial|send|message|sms|whatsapp|facebook|tiktok|youtube|telegram|instagram|twitter|github|upload|tap|type|alarm|remind|reminder|timer|calendar|install|download|go to|khul|kholo|pathao|pathan|pathaw)\\b|খোল|পাঠা|কল করো|আপলোড|অ্যালার্ম|রিমাইন্ড|টাইমার")
+
+    /** True when the message is only talk or a question (no phone action words). */
+    private fun isChatOnly(goal: String) = !actionWords.containsMatchIn(goal)
+
+    private fun searchOn() = prefs.getBoolean("search_on", false) && Entitlements.premium(act) && Llm.provider(act) == "anthropic"
+
+    /** The conversation system prompt: understand mixed Bangla and English, reply fully in the user's style. */
+    private fun chatSystem(): String {
+        val soul = prefs.getString("soul", "") ?: ""
+        val memory = if (OwnerAuth.unlocked(act)) (prefs.getString("memory", "") ?: "") else ""
+        val recent = (prefs.getString("chat_log", "") ?: "").takeLast(4000)
+        val langRule = when (prefs.getString("reply_lang", "auto")) {
+            "en" -> "Always reply in English."
+            "bn" -> "Always reply in Bangla (Bengali script)."
+            else -> ""
+        }
+        return """You are MISS SARA, a warm and clever assistant on the user's phone.
+Understand the meaning even when the message is short, mixed (Bangla and English together), misspelled or written in Latin letters (ami, tumi, kemon acho). If the speech looks garbled, infer the most likely meaning from the context.
+Reply in the language and style the user used: a Bangla question gets a Bangla reply in Bengali script, English gets English, a mix gets a natural mix.
+Give the full answer the user asked for, clearly structured, in plain text (no JSON). For a greeting, reply briefly and warmly.
+If the request is unclear, ask one short question instead of guessing.
+Never claim you did a phone action that you did not do.
+$langRule
+Persona: ${soul.ifBlank { "(default)" }}
+Things to remember about the user: ${memory.ifBlank { "(none)" }}
+Recent conversation (background only, answer only the newest message): $recent"""
+    }
+
+    /** One conversational turn: a plain answer from the AI, shown and spoken in full. */
+    private fun chatTurn(goal: String) {
+        val gen = ++generation
+        running = true
+        Thread {
+            try {
+                if (gen != generation) return@Thread
+                hudSay("Thinking...")
+                val reply = Llm.complete(act, chatSystem(), goal, 1400, searchOn())
+                if (gen != generation) return@Thread
+                val text = reply.trim().ifBlank { "I could not get an answer. Please try again." }
+                saveTurn(goal, text)
+                post(text)
+                speak(text, null)
+            } catch (e: Exception) {
+                if (gen == generation) post("Error: " + (e.message ?: ""))
+            } finally {
+                if (gen == generation) {
+                    running = false
+                    AgentService.instance?.hud?.hide()
                 }
             }
         }.start()

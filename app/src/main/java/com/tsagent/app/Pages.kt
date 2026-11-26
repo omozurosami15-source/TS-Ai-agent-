@@ -541,6 +541,7 @@ class PageLayer(private val act: MainActivity, private val kind: Int) : FrameLay
             col.addView(menuRow(icon, label, color, Theme.G, 0xCC03120C.toInt(), run), LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(8) })
         }
         row(I.PERSON, "Personal Information", cy) { act.pgEditName() }
+        row(I.GLOBE, "Plans", cy) { act.pgPlans() }
         row(I.SHIELDCHK, "Security", cy) { act.pgSecurity() }
         row(I.BELL, "Notifications", 0xFFFFB02E.toInt()) { act.pgNotif() }
         row(I.PALETTE, "Appearance", cy) { act.pgAppearance() }

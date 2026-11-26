@@ -367,7 +367,26 @@ class MainActivity : Activity() {
             setPadding(dp(10), dp(6), dp(10), dp(6)); visibility = View.GONE
             background = NeonBg(Theme.C, 0xDD02100A.toInt(), 8f, 1.4f)
             setOnClickListener {
-                if (Entitlements.can(this@MainActivity, PlanRights.Feature.PREMIUM_DESIGN)) startActivity(Intent(this@MainActivity, PremiumActivity::class.java).putExtra("plan", Entitlements.dashboardPlanNumber(this@MainActivity).takeIf { it in 1..17 } ?: 1))
+                if (Entitlements.can(this@MainActivity, PlanRights.Feature.PREMIUM_DESIGN)) { when (Entitlements.dashboardPlanNumber(this@MainActivity)) {
+                    1 -> startActivity(Intent(this@MainActivity, PremiumActivity::class.java))
+                    2 -> startActivity(Intent(this@MainActivity, PlanTwoActivity::class.java))
+                    3 -> startActivity(Intent(this@MainActivity, PlanThreeActivity::class.java))
+                    4 -> startActivity(Intent(this@MainActivity, PlanFourActivity::class.java))
+                    5 -> startActivity(Intent(this@MainActivity, PlanFiveActivity::class.java))
+                    6 -> startActivity(Intent(this@MainActivity, PlanSixActivity::class.java))
+                    7 -> startActivity(Intent(this@MainActivity, PlanSevenActivity::class.java))
+                    8 -> startActivity(Intent(this@MainActivity, PlanEightActivity::class.java))
+                    9 -> startActivity(Intent(this@MainActivity, PlanNineActivity::class.java))
+                    10 -> startActivity(Intent(this@MainActivity, PlanTenActivity::class.java))
+                    11 -> startActivity(Intent(this@MainActivity, PlanElevenActivity::class.java))
+                    12 -> startActivity(Intent(this@MainActivity, PlanTwelveActivity::class.java))
+                    13 -> startActivity(Intent(this@MainActivity, PlanThirteenActivity::class.java))
+                    14 -> startActivity(Intent(this@MainActivity, PlanFourteenActivity::class.java))
+                    15 -> startActivity(Intent(this@MainActivity, PlanFifteenActivity::class.java))
+                    16 -> startActivity(Intent(this@MainActivity, PlanSixteenActivity::class.java))
+                    17 -> startActivity(Intent(this@MainActivity, PlanSeventeenActivity::class.java))
+                    else -> openPlanReview()
+                } }
                 else openPlanReview()
             }
         }
@@ -745,7 +764,7 @@ class MainActivity : Activity() {
     fun pgAppearance() {
         val motion = if (prefs.getBoolean("reduce_motion", false)) "ON" else "OFF"
         val float = if (prefs.getBoolean("float", true)) "ON" else "OFF"
-        val items = arrayOf("Reduce motion: $motion", "Floating assistant bubble: $float")
+        val items = arrayOf("Reduce motion: $motion", "Floating assistant bubble: $float", "Restore default home")
         AlertDialog.Builder(this).setTitle("Appearance").setItems(items) { _, i ->
             when (i) {
                 0 -> { prefs.edit().putBoolean("reduce_motion", !prefs.getBoolean("reduce_motion", false)).apply(); pgAppearance() }
@@ -755,8 +774,25 @@ class MainActivity : Activity() {
                     if (on) AssistantService.ensure(this) else AssistantService.stop(this)
                     pgAppearance()
                 }
+                2 -> confirmRestoreHome()
             }
         }.setNegativeButton("CLOSE", null).show()
+    }
+
+    /**
+     * Puts the home page back to the app's defaults. The defaults are built into the app, so nothing needs
+     * to be stored. Chat, memory, tasks, plan and owner data are not touched.
+     */
+    private fun confirmRestoreHome() {
+        AlertDialog.Builder(this).setTitle("Restore default home?")
+            .setMessage("Home shortcuts, the dashboard plan, motion and the floating bubble go back to the defaults. Chat, memory, tasks, plan and owner data stay.")
+            .setPositiveButton("RESTORE") { _, _ ->
+                prefs.edit().remove("shortcuts").remove("dashboard_plan").remove("reduce_motion")
+                    .putBoolean("float", true).apply()
+                AssistantService.ensure(this)
+                show("AGENT", "Home restored to the defaults.")
+            }
+            .setNegativeButton("CANCEL", null).show()
     }
 
     /** Language: the voice language and the language the AI replies in. */
@@ -1056,6 +1092,7 @@ class MainActivity : Activity() {
 
     private fun speak(text: String, lang: String? = null) {
         if (!SpeechGate.claim("main", text) { tts?.stop(); Voice.stop() }) return
+        recognizer?.cancel() // the mic is off while the reply is spoken
         if (Voice.configured(this)) {
             Voice.speak(this, text, { setState(2) }, { if (stage.state == 2) setState(0); afterSpeak() }) { systemSpeak(text, lang) }
             return
@@ -1157,6 +1194,7 @@ class MainActivity : Activity() {
 
     private fun listen() {
         if (listening) return
+        if (stage.state == 2) return // never open the mic while the reply is spoken
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 2); return
         }
@@ -1169,8 +1207,7 @@ class MainActivity : Activity() {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(p: Bundle?) { if (stage.state == 0) setState(1) }
                 override fun onBeginningOfSpeech() {
-                    // The user started talking: the phone stops its own speech at once.
-                    if (stage.state == 2) main.post { interrupt() }
+                    // The mic is off while the reply is spoken, so nothing here cuts the reply.
                 }
                 override fun onRmsChanged(v: Float) {}
                 override fun onBufferReceived(b: ByteArray?) {}
@@ -1201,11 +1238,9 @@ class MainActivity : Activity() {
                     val t = pickSpoken(r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty())
                     // While the phone is talking, drop only its own voice coming back into the mic (echo).
                     // A real new sentence from the user interrupts the reply and is answered.
-                    if (stage.state == 2) {
-                        val echo = t == null || (lastSpoken.isNotBlank() && lastSpoken.contains(t.trim().take(20)))
-                        if (echo) { if (keepListening) main.postDelayed({ if (keepListening) listen() }, 300); return }
-                        main.post { interrupt() }
-                    }
+                    // The reply is still being spoken: whatever the mic caught (often the phone's own voice) is ignored.
+                    // Listening restarts by itself when the reply ends (afterSpeak). Only the ABORT button stops a reply.
+                    if (stage.state == 2) return
                     if (!t.isNullOrBlank() && isRude(t)) { main.post { shutDownForRude() }; return }
                     // the recognizer sometimes returns the same words again (echo or late result): skip a repeat within 6 seconds
                     val now = System.currentTimeMillis()
@@ -1220,7 +1255,7 @@ class MainActivity : Activity() {
                     if (!p.isNullOrBlank() && isRude(p)) { main.post { shutDownForRude() }; return }
                     // Only while the phone is talking, and only for real words: a running task is not cut off by noise.
                     // while the phone is talking, only a real sentence counts (short echo of its own voice is ignored)
-                    if (!p.isNullOrBlank() && p.trim().length >= 4 && stage.state == 2) interrupt()
+                    // Listening is off while the reply is spoken, so partial results do not interrupt it.
                 }
                 override fun onEvent(t: Int, b: Bundle?) {}
             })
