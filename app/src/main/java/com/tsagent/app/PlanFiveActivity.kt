@@ -39,10 +39,6 @@ class PlanFiveActivity : Activity() {
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(14), dp(14), dp(24)) }
         title = text("", 18f, rose, bold = true).apply { gravity = Gravity.START }
         col.addView(title)
-        android.animation.ObjectAnimator.ofFloat(title, android.view.View.ALPHA, 0.7f, 1f).apply {
-            duration = 2200; repeatCount = android.animation.ObjectAnimator.INFINITE
-            repeatMode = android.animation.ObjectAnimator.REVERSE; start()
-        }
         col.addView(text("AI companion · you are talking to an AI", 12f, soft).apply { gravity = Gravity.START })
         refreshTitle()
 
@@ -84,7 +80,7 @@ class PlanFiveActivity : Activity() {
         val grid = GridLayout(this).apply { columnCount = 2 }
         val items: List<Pair<String, () -> Unit>> = listOf(
             Pair("Voice", { open(MainActivity::class.java) }),
-            Pair("Chat", { open(MainActivity::class.java) }),
+            Pair("Chat", { open(ChatPageActivity::class.java) }),
             Pair("Plans", { open(PlanDashboardActivity::class.java) }),
             Pair("Back", { finish() })
         )
@@ -140,7 +136,7 @@ class PlanFiveActivity : Activity() {
             } finally {
                 PlanAi.forced = 0
             }
-            runOnUiThread { answer.text = reply }
+            runOnUiThread { answer.text = Md.plain(reply) }
         }.start()
     }
 

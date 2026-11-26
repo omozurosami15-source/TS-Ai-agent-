@@ -400,7 +400,7 @@ class MainActivity : Activity() {
         stage.onNode = { i ->
             when (i) {
                 0 -> if (OwnerAuth.unlocked(this)) editNote("MEMORY // what the AI remembers", "memory", "") else show("AGENT", "Owner login required. Open SETTINGS > Owner login.")
-                1 -> chatRow.visibility = if (chatRow.visibility == View.GONE) View.VISIBLE else View.GONE
+                1 -> startActivity(Intent(this, ChatPageActivity::class.java))
                 2 -> editNote("SOUL // the AI personality", "soul", "You are TS Agent, a friendly assistant.")
                 else -> showSettings()
             }

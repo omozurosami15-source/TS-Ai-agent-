@@ -103,7 +103,7 @@ class VisionLabActivity : Activity() {
             } catch (e: Exception) {
                 "Not available: " + (e.message ?: "")
             }
-            runOnUiThread { status.text = ""; result.text = reply }
+            runOnUiThread { status.text = ""; result.text = Md.plain(reply) }
         }.start()
     }
 

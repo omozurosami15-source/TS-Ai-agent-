@@ -708,7 +708,7 @@ class PageLayer(private val act: MainActivity, private val kind: Int) : FrameLay
                         val card = LinearLayout(act).apply {
                             gravity = Gravity.CENTER_VERTICAL; setPadding(dp(10), dp(8), dp(8), dp(8))
                             background = NeonBg(t.color, pgA(t.color, 0x2A), 10f, 1.8f)
-                            setOnClickListener { if (t.prefix == "\u0000file") act.pgPickFile() else act.pgTool(if (t.name == "AI CHAT") "" else t.name, t.prefix) }
+                            setOnClickListener { if (t.name == "AI CHAT") act.startActivity(android.content.Intent(act, ChatPageActivity::class.java)) else if (t.prefix == "\u0000file") act.pgPickFile() else act.pgTool(t.name, t.prefix) }
                         }
                         card.addView(Ico(act, t.icon, if (t.color == teal) 0xFF3FE0F5.toInt() else t.color, 2f), LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(8) })
                         val tx = LinearLayout(act).apply { orientation = LinearLayout.VERTICAL }

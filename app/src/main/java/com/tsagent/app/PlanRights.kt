@@ -25,7 +25,8 @@ object PlanRights {
         WATCH_MODE("Watch mode (owner only)"),
         PREMIUM_DESIGN("Premium design pages, all 17 plans (opened with REVIEW)"),
         PREMIUM_RICH("Picture design pages for the top plans"),
-        AI_TOOLS("AI tools: translator, text writer, code helper, summarizer, file analyzer")
+        AI_TOOLS("AI tools: translator, text writer, code helper, summarizer, file analyzer"),
+        BUILDER("AI builder: writes website and app files, saved on the phone")
     }
 
     private val rights: Map<String, Set<Feature>> = mapOf(
@@ -34,7 +35,7 @@ object PlanRights {
         "p2" to setOf(
             Feature.COMPANION, Feature.NATURAL_VOICE, Feature.FLOATING_ASSISTANT,
             Feature.PHONE_ACTIONS, Feature.WEB_SEARCH, Feature.AUTOPLAY, Feature.AI_TOOLS,
-            Feature.PREMIUM_DESIGN, Feature.PREMIUM_RICH
+            Feature.PREMIUM_DESIGN, Feature.PREMIUM_RICH, Feature.BUILDER
         ),
         "owner" to Feature.values().toSet()
     )

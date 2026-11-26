@@ -83,7 +83,8 @@ object Entitlements {
     fun dashboardPlanNumber(ctx: Context): Int {
         val chosen = prefs(ctx).getInt("dashboard_plan", 0)
         if (Config.ALL_FREE) return chosen.coerceIn(0, 17)
-        if (plan(ctx) == "owner") return (if (chosen in 1..17) chosen else 1)
+        // the owner sees the original Home until a plan is chosen on purpose (no automatic Plan 1)
+        if (plan(ctx) == "owner") return (if (chosen in 1..17) chosen else 0)
         val owned = ownedPlanNumbers(ctx)
         if (owned.isEmpty()) return 0
         if (chosen in owned) return chosen

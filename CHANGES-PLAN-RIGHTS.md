@@ -203,3 +203,68 @@
 
 ## Build fix (v37)
 - MicView was defined twice (the project already has MicView.kt). The Plan 3 view is renamed PlanThreeMicView, and the Plan 6 view is renamed PlanSixWebView, so no class name clashes.
+
+## AI Builder (v38)
+- BuilderActivity: describe a website or app, the AI writes the files (JSON), and they are saved in the app's own folder (filesDir/projects/<name>/). Paths are checked so files stay inside the project folder; limits: 40 files, 300 KB each.
+- Builder model: an optional stronger model, saved in Builder, is used only for builds (the normal model is put back after).
+- Plan access: Feature.BUILDER, Plan 2 and up. Opened from the Plan 17 page.
+- Limits: the AI writes the files, the app does not run them. Zipping, previews and publishing are not done. Quality depends on the model.
+
+## Builder: zip, cPanel deploy, database, self-fix (v39)
+- ZIP: packs the project folder into <name>.zip in the app folder.
+- DEPLOY: uploads each project file to the first cPanel site in Settings (CpanelClient.write), checks the site URL (CpanelClient.check). If the check is not 200, the AI reads the result and the files, fixes them, and redeploys; at most two fix rounds.
+- DATABASE: creates a database on the cPanel site (CpanelClient.createDb) named after the project.
+- Not done: running PHP on the phone; reading PHP error logs; choosing a site; checking that the fix works beyond the HTTP check. The cPanel host, user and token must be set in Settings.
+
+## Builder: approval and real site check (v40)
+- Upload and database creation need a confirmation tap first (the user's permission for each action).
+- Site check reads the page: fails on HTTP 400 and above, and on PHP or database error text (Fatal error, Parse error, Warning, Notice, undefined variable, MySQL error). The error text is given to the AI for the fix.
+- Still not done: server error logs, testing the site in a real cPanel account, and a verified end-to-end run.
+
+## Plans 16 and 17 on full-width photos with moving layers (v41)
+- Plan 17 (System Analytics): the brain picture (1000232249) full width, with a pulsing light and two turning orbit rings over it, a real status box, a tap area over the brain, and a control bar under it.
+- Plan 16 (Security Center): the atom picture (1000232234), with a pulsing light and two turning orbit rings, a status box, a tap area, and a control bar.
+- A shared base class PlanLayeredPage and a GlowLayer view draw the moving layer. The photo breathes with a slow zoom.
+- Limit: the atom picture has a white background, which stays white. The moving layer and the object are the picture's own.
+
+## Owner unlock no longer puts Plan 1 on Home (v42)
+- Cause: for the owner, dashboardPlanNumber fell back to 1 when no plan was chosen, so Home switched to the Plan 1 3D view right after owner unlock.
+- Fix: the owner now sees the original Home until a plan is chosen on purpose in the plan screen.
+
+## Chat text and identity (v43)
+- Replies show clean text: markdown **bold**, __bold__ and # headings are removed before they reach the chat (plainText in Agent).
+- Identity: the assistant is MISS SARA from TS Agent, made by Tarek, and does not name another company as its maker. The screenshot showed "Particle AI" as the maker, which came from the model underneath.
+
+## Markdown symbols removed everywhere the AI text is shown (v44)
+- Md.plain(): one shared cleaner for **bold**, __bold__, # headings and * lists.
+- Used for chat replies (Agent) and every plan, tool and premium page that shows an AI answer.
+- Not used on code (Diagram, Builder), on the raw JSON the agent reads (Llm), or on the agent's own parser, so code and JSON are not changed.
+
+## Full chat page (v45)
+- ChatPageActivity: message list (user right, MISS SARA left), bottom bar with + (photo, web search on/off, clear), text box, MIC (speech to text) and SEND.
+- Under each AI reply: COPY, SHARE, SPEAK, AGAIN (re-ask the last question).
+- Photos go through the vision AI (Llm.completeVision). Replies are cleaned with Md.plain.
+- Every CHAT button opens this page: the home CHAT node, and the CHAT/Chat buttons on the plan pages.
+- Limits: messages are kept only while the app runs (not saved between launches); camera capture is not included (photos only).
+
+## AI CHAT tool routed to the chat page (v46)
+- The AI TOOLS page's "AI CHAT" tile opens ChatPageActivity (it used to send the text to the old main chat).
+
+## Animations cleared, one photo per plan (v47)
+- Removed every drawn or animated plan design: the wave, brain, microphone, robot, web-globe and layered-glow pages, and the photo zoom. Old plan pages 1 to 17 are replaced by one base page (PlanBasePage) with a per-plan photo, status, controls and question box, and no animation.
+- Each plan has its own photo: 1 AI core, 2 voice hologram, 3 microphone, 4 voice analytics, 5 MISS SARA AI card, 6 green control room, 7 robot desk, 8 sci-fi bridge, 9 control room, 10 AI dashboard, 11 green sphere chat, 12 MISS SARA banner, 13 lime dashboard, 14 Lumi, 15 MISS SARA poster, 16 atom, 17 brain.
+- Plan 5 keeps its companion page (name, on/off, memory) without the breathing animation.
+- Next: design each plan from its photo, one at a time.
+
+## Plan 1 designed from its photo (v48)
+- Photo full width, at its own proportions.
+- Status box inside the curved top panel (plan, mic, reply language), real values only.
+- Tap area over the brain: a tap opens the question box.
+- Control bar on the platform under the brain: CHAT, VISION, PLANS, BACK.
+- No animation yet (animation is added after the layout is approved).
+- The base page takes the layer positions from each plan, so plans 2 to 17 can be placed the same way from their photos.
+
+## Plan 1 animation (v49)
+- The brain has a pulsing light and two orbit rings that turn in opposite directions (GlowView).
+- The photo has a slow zoom (5 seconds in, out).
+- Other plans have no animation yet.

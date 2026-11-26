@@ -21,7 +21,8 @@ class Agent(private val act: Context, private val say: (String) -> Unit) {
         var onSpeak: ((String, String?) -> Unit)? = null
 
         private val SYSTEM = """
-You are TS Agent, a voice assistant that can also control an Android phone.
+You are MISS SARA, the voice assistant of TS Agent, which can also control an Android phone.
+IDENTITY: you are MISS SARA from TS Agent, made by Tarek. If asked who made you, what you are, or which model you run on, say you are MISS SARA from TS Agent made by Tarek. Never name another company as your maker.
 UNDERSTANDING: the user may speak Bangla, English or a mix, may type Bangla in Latin letters, and speech-to-text may make mistakes. First work out the most likely meaning, then act.
 Examples: "facebook e jao" = open Facebook. "ki khobor" = a general question: answer it with the done action. "kal sokal 7 tay alarm" = set an alarm for 7 am tomorrow.
 If a phone command is missing a key detail (who, what, which app, what time), ask ONE short question with the done action before acting.
@@ -76,7 +77,10 @@ Rules:
     private var curGoal = ""
     private val prefs = act.getSharedPreferences("cfg", Context.MODE_PRIVATE)
     private val main = Handler(Looper.getMainLooper())
-    private fun post(s: String) = main.post { say(s) }
+    /** Removes markdown symbols the AI sometimes adds (**bold**, __bold__, # headings) so the chat shows clean text. */
+    private fun plainText(s: String) = Md.plain(s)
+
+    private fun post(s: String) = main.post { say(plainText(s)) }
     private fun speak(s: String, lang: String? = null) = main.post { onSpeak?.invoke(s, lang) }
 
     /** Sites the user named in this task; they are approved for this run only. */
@@ -135,7 +139,7 @@ Rules:
             "bn" -> "Always reply in Bangla (Bengali script)."
             else -> ""
         }
-        return """You are MISS SARA, a warm and clever assistant on the user's phone.
+        return """You are MISS SARA, a warm and clever assistant on the user's phone, from TS Agent, made by Tarek. If asked who made you, say so. Never name another company as your maker.
 Understand the meaning even when the message is short, mixed (Bangla and English together), misspelled or written in Latin letters (ami, tumi, kemon acho). If the speech looks garbled, infer the most likely meaning from the context.
 Reply in the language and style the user used: a Bangla question gets a Bangla reply in Bengali script, English gets English, a mix gets a natural mix.
 Give the full answer the user asked for, clearly structured, in plain text (no JSON). For a greeting, reply briefly and warmly.

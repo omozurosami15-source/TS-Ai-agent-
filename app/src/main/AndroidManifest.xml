@@ -54,6 +54,8 @@
         <activity android:name=".PlanSevenActivity" android:exported="false" />
         <activity android:name=".PlanEightActivity" android:exported="false" />
         <activity android:name=".PlanNineActivity" android:exported="false" />
+        <activity android:name=".BuilderActivity" android:exported="false" />
+        <activity android:name=".ChatPageActivity" android:exported="false" />
         <activity android:name=".PlanTenActivity" android:exported="false" />
         <activity android:name=".PlanElevenActivity" android:exported="false" />
         <activity android:name=".PlanTwelveActivity" android:exported="false" />
