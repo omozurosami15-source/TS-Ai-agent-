@@ -272,3 +272,6 @@
 ## Build fix (v50)
 - PlanPages.kt: the bar declaration was lost in an earlier edit; restored.
 - Old plan files (PlanTwoActivity.kt, PlanPicturePage.kt, etc.) were deleted in this project, but they still exist in the GitHub repo from earlier pushes. A plain `cp -r` keeps them, which causes the duplicate class errors. Use rsync --delete (below) so deleted files are removed from the repo too.
+
+## Build fix (v51)
+- PlanPages.kt: a stray fragment left by the earlier bar fix ("= LinearLayout(...)") removed. This was the "Expecting an element" error.
